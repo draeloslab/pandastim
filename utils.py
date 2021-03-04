@@ -4,7 +4,6 @@ Helper functions used in multiple classes in stimulu/textures
 
 Part of pandastim package: https://github.com/EricThomson/pandastim
 """
-import sys
 import numpy as np
 import threading
 import zmq
@@ -17,6 +16,15 @@ from direct.showbase.MessengerGlobal import messenger
 from scipy import signal
 from datetime import datetime as dt
 
+def port_provider():
+    """
+    returns a random free port on PC
+    """
+    c = zmq.Context()
+    s = c.socket(zmq.SUB)
+    rand_port = s.bind_to_random_port('tcp://*', min_port=5000, max_port=8000, max_tries=100)
+    c.destroy()
+    return rand_port
 
 def updated_saving(file_path, fish_id, fish_age):
     """

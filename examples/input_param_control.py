@@ -4,10 +4,9 @@ pandastim/examples/input_param_control.py
 
 Part of pandastim package: https://github.com/EricThomson/pandastim
 """
+from pandastim import textures, stimuli
+from pandastim.utils import Emitter, port_provider
 
-from utils import Emitter
-import textures
-import stimuli
 from datetime import datetime
 
 # Create emitter to generate pseudo x, y, theta values
@@ -23,7 +22,7 @@ em = Emitter(x, y, theta, period = .1, pause = 2)
 # Set up filepath for saving
 current_dt = datetime.now()
 filename = current_dt.strftime(("ipc_%Y%m%d_%H%M%S.txt"))
-save_dir = r'./examples/data/'
+save_dir = r'./examples'
 file_path = save_dir + filename
 
 tex = textures.GratingRgbTex(spatial_frequency = 30, texture_size = 1024, rgb = (255, 0, 0))
@@ -36,7 +35,7 @@ binocular_show = stimuli.InputControlParams(tex,
                                             window_size = 512,
                                             window_name = 'input control example',
                                             fps = 50,
-                                            profile_on = True,
+                                            profile_on = False,
                                             save_path = file_path)
 binocular_show.run()
 em.kill()

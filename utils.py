@@ -126,7 +126,7 @@ class Subscriber:
         self.topic = topic
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.SUB)
-        self.socket.connect(r"tcp://127.0.0.1:" + self.port)
+        self.socket.connect(r"tcp://127.0.0.1:" + str(self.port))
         self.socket.subscribe(self.topic)
         
     def kill(self):

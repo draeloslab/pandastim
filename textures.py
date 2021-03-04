@@ -17,6 +17,7 @@ from panda3d.core import Texture
 
 import utils 
 
+
 class TextureBase:
     """
     Base class for stimuli: subclass this when making specific stimuli.
@@ -122,6 +123,7 @@ class CircleGrayTex(TextureBase):
         part2 = f"radius:{self.radius} bg:{self.bg_intensity} fg:{self.fg_intensity}"
         return part1 + part2
   
+  
 class SinGrayTex(TextureBase):
     """
     Grayscale sinusoidal grating texture.
@@ -141,6 +143,7 @@ class SinGrayTex(TextureBase):
     
     def __str__(self):
         return f"{type(self).__name__} size:{self.texture_size} frequency:{self.frequency}"
+    
     
 class SinRgbTex(TextureBase):
     """
@@ -221,7 +224,114 @@ class GratingRgbTex(TextureBase):
         
     def __str__(self):
         return f"{type(self).__name__} size:{self.texture_size} frequency:{self.frequency} rgb:{self.rgb}"
-    
+
+
+class BlankTex(TextureBase):
+    """
+    Grayscale 2d square wave (grating)
+    """
+
+    def __init__(self, texture_size=512, texture_name="blank_tex"):
+        super().__init__(texture_size=texture_size, texture_name=texture_name)
+
+    def create_texture(self):
+        tex = np.zeros(self.texture_size)
+        return np.uint8(tex)
+
+    def __str__(self):
+        return f"{type(self).__name__} size:{self.texture_size} "
+
+'''
+All XY classes require textures to be formatted as a tuple (x,y), but otherwise function similarly.
+'''
+
+
+class TextureBaseXY:
+    """
+    Base class for all XY stimuli: subclass this when making specific stimuli.
+    You need to implement the create_texture() method, and any parameters
+    needed for the texture function. These support non-square shaped windows and textures
+    """
+
+    def __init__(self, texture_size=(512, 512), texture_name="stimulus"):
+        self.texture_size = texture_size
+        self.texture_name = texture_name
+        # Create texture
+        self.texture_array = self.create_texture()
+        self.texture = Texture(self.texture_name)
+        # Set texture formatting (greyscale or rgb have different settings)
+        if self.texture_array.ndim == 2:
+            self.texture.setup2dTexture(self.texture_size[0], self.texture_size[1],
+                                        Texture.T_unsigned_byte,
+                                        Texture.F_luminance)
+            self.texture.setRamImageAs(self.texture_array, "L")
+        elif self.texture_array.ndim == 3:
+            self.texture.setup2dTexture(self.texture_size[0], self.texture_size[1],
+                                        Texture.T_unsigned_byte,
+                                        Texture.F_rgb8)
+            self.texture.setRamImageAs(self.texture_array, "RGB")
+
+    def create_texture(self):
+        """
+        Create 2d numpy array for stimulus: either nxmx1 (grayscale) or nxm x 3 (rgb)
+        """
+        pass
+
+    def view(self):
+        """
+        Plot the texture using matplotlib. Useful for debugging.
+        """
+        plt.imshow(self.texture_array, vmin=0, vmax=255)
+        if self.texture_array.ndim == 2:
+            plt.set_cmap('gray')
+
+        plt.title(self.texture_name)
+        plt.gca().invert_yaxis()
+        plt.show()
+
+    def __str__(self):
+        """
+        Return the string you want print(Tex) to show, and to save to file
+        when saving catalog of stimuli.
+        """
+        pass
+
+
+class BlankTexXY(TextureBaseXY):
+    """
+    Grayscale 2d square wave (grating)
+    """
+
+    def __init__(self, texture_size=(512, 512), texture_name="blank_tex"):
+        super().__init__(texture_size=texture_size, texture_name=texture_name)
+
+    def create_texture(self):
+        tex = np.zeros(self.texture_size)
+        return np.uint8(tex)
+
+    def __str__(self):
+        return f"{type(self).__name__} size:{self.texture_size} "
+
+
+class GratingGrayTexXY(TextureBaseXY):
+    """
+    Grayscale 2d square wave (grating)
+    """
+
+    def __init__(self, texture_size=512, texture_name="grating_gray",
+                 spatial_frequency=10):
+        self.frequency = spatial_frequency
+        super().__init__(texture_size=texture_size, texture_name=texture_name)
+
+    def create_texture(self):
+        x = np.linspace(0, 2 * np.pi, self.texture_size[0] + 1)
+        y = np.linspace(0, 2 * np.pi, self.texture_size[1] + 1)
+        X, Y = np.meshgrid(x[: self.texture_size[0]], y[: self.texture_size[1]])
+        return utils.grating_byte(X, freq=self.frequency)
+
+    def __str__(self):
+        return f"{type(self).__name__} size:{self.texture_size} frequency:{self.frequency}"
+
 #%%  
 if __name__ == '__main__':
     example = 5

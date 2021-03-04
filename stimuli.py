@@ -550,7 +550,7 @@ class ClosedLoopStimChoice(ShowBase):
     """
     def __init__(self, textures, def_freq=32, def_center_width=16, scale=8, fps=60, save_path=None,
                  window_size=None, win_pos=(0,0),window_name='Pandastim',
-                 fish_id=None, fish_age=None, profile_on=False, ):
+                 fish_id=None, fish_age=None, profile_on=False, gui=False):
 
         super().__init__()
 
@@ -581,13 +581,14 @@ class ClosedLoopStimChoice(ShowBase):
         self.windowName = window_name
         self.windowProps.setTitle(self.windowName)
         self.windowProps.setSize(self.windowSize)
-        self.windowProps.set_undecorated(True)
-        self.windowProps.set_foreground(True)
-        self.window_position = win_pos
-        self.windowProps.set_origin(self.window_position)
+        if not gui:
+            self.windowProps.set_undecorated(True)
+            self.disable_mouse()
+            self.windowProps.set_foreground(True)
+            self.windowProps.set_origin(self.window_position)
+            self.window_position = win_pos
 
         ShowBaseGlobal.base.win.requestProperties(self.windowProps)  # base is panda3d
-        self.disable_mouse()
 
         self.default_freq = def_freq
         self.default_center_width = def_center_width
@@ -618,7 +619,7 @@ class ClosedLoopStimChoice(ShowBase):
             try:
                 self.current_stimulus['texture'] = self.textures['freq'][stimulus['freq']]
             except:
-                self.current_stimulus['texture'] = self.textures[self.default_freq]
+                self.current_stimulus['texture'] = self.textures['freq'][self.default_freq]
 
         elif stimulus['stim_type'] == 'b':
             self.current_stimulus = stimulus
@@ -630,7 +631,7 @@ class ClosedLoopStimChoice(ShowBase):
                 else:
                     self.current_stimulus['texture'] = [self.textures['freq'][stimulus['freq'][0]], self.textures['freq'][stimulus['freq'][1]]]
             except:
-                self.current_stimulus['texture'] = [self.textures[self.default_freq],self.textures[self.default_freq]]
+                self.current_stimulus['texture'] = [self.textures['freq'][self.default_freq],self.textures['freq'][self.default_freq]]
             try:
                 test_1 = self.current_stimulus['center_width']
             except KeyError:

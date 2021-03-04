@@ -7,12 +7,44 @@ Part of pandastim package: https://github.com/EricThomson/pandastim
 import sys
 import numpy as np
 import threading
-from scipy import signal 
 import zmq
 import time
+import os
 
 from direct.showbase import DirectObject
 from direct.showbase.MessengerGlobal import messenger
+
+from scipy import signal
+from datetime import datetime as dt
+
+
+def updated_saving(file_path, fish_id, fish_age):
+    """
+    Initializes saving: saves texture classes and params for
+    input-coupled stimulus classes.
+
+    Updated from earlier -- dont remember why different
+    """
+    if '\\' in file_path:
+        file_path = file_path.replace('\\', '/')
+
+    val_offset = 0
+    newpath = file_path
+    while os.path.exists(newpath):
+        val_offset += 1
+        newpath = file_path[:file_path.rfind('/') + 1] + file_path[
+                                                                   file_path.rfind('/') + 1:][:-4] \
+                  + '_' + str(val_offset) + '.txt'
+
+    file_path = newpath
+
+    print(f"Saving data to {file_path}")
+    filestream = open(file_path, "a")
+
+    filestream.write(f"fish{fish_id}_{fish_age}dpf_{dt.now()}")
+    filestream.flush()
+    return filestream
+
 
 def sin_byte(X, freq = 1):
     """
@@ -118,7 +150,31 @@ class Monitor(DirectObject.DirectObject):
     def kill(self):
         self.run_thread.join()
         
-        
+
+class MonitorDataPass(DirectObject.DirectObject):
+    """
+    this monitor passes the data through to pandas
+    """
+    def __init__(self, subscriber):
+        self.sub = subscriber
+
+        self.run_thread = threading.Thread(target=self.run)
+
+        self.run_thread.daemon = True
+        self.run_thread.start()
+
+    def run(self):
+        # this is run on a separate thread so it can sit in a loop waiting to receive messages
+        while True:
+            topic = self.sub.socket.recv_string()
+            data = self.sub.socket.recv_pyobj()
+            # print(data)
+            # this is a duplication at the moment, but provides an intermediate processing stage
+            messenger.send('stimulus', [data])
+
+    def kill(self):
+        self.run_thread.join()
+
 class Emitter(DirectObject.DirectObject):
     """
     Given three lists (x, y, theta): 

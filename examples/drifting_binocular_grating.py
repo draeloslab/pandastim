@@ -4,8 +4,7 @@ pandastim/examples/drifting_binocular_grating.py
 
 Part of pandastim package: https://github.com/EricThomson/pandastim
 """
-import textures
-import stimuli
+from pandastim import textures, stimuli
 
 tex = textures.GratingRgbTex(rgb = (255, 0, 0), 
                              spatial_frequency = 30)

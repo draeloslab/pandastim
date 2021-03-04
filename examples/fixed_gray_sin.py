@@ -4,8 +4,7 @@ pandastim/examples/fixed_gray_sin.py
 
 Part of pandastim package: https://github.com/EricThomson/pandastim
 """
-import textures
-import stimuli
+from pandastim import textures, stimuli
 
 sin_grey_tex = textures.SinGrayTex(texture_size = 512,
                                    spatial_frequency = 20)

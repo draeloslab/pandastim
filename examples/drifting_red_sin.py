@@ -6,8 +6,8 @@ For info about profiling and the profile_on keyword, see pandastim/readme.md
 
 Part of pandastim package: https://github.com/EricThomson/pandastim
 """
-import textures
-import stimuli
+from pandastim import textures
+from pandastim import stimuli
 
 sin_red_tex = textures.SinRgbTex(texture_size = 512,
                                  spatial_frequency = 30,

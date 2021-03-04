@@ -62,14 +62,6 @@ class PandasController(QtWidgets.QMainWindow):
                 pass
             time.sleep(0.02)
 
-        """        curr_tab = self.tabs.currentIndex()
-        if curr_tab == 0:
-            stim = {'stim_type': 's', 'angle': self.wf_angle.value(), 'velocity': self.wf_vel.value(),
-                    'stationary_time': self.wf_stat.value(), 'stim_time': self.wf_stim_time.value(), 'freq': self.wf_freq.value()}
-            
-            self._socket.send_string(self.stimulus_topic, zmq.SNDMORE)
-            self._socket.send_pyobj(stim)"""
-
     def closeEvent(self, event):
         self.pandas.terminate()
 

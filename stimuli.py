@@ -10,6 +10,8 @@ from pandastim import utils
 import sys
 import numpy as np
 import logging
+import threading as tr
+import time
 
 from direct.showbase.ShowBase import ShowBase
 from direct.showbase import ShowBaseGlobal  #global vars defined by p3d
@@ -550,7 +552,7 @@ class ClosedLoopStimChoice(ShowBase):
     """
     def __init__(self, textures, def_freq=32, def_center_width=16, scale=8, fps=60, save_path=None,
                  window_size=None, win_pos=(0,0),window_name='Pandastim',
-                 fish_id=None, fish_age=None, profile_on=False, ):
+                 fish_id=None, fish_age=None, profile_on=False, gui=False):
 
         super().__init__()
 
@@ -581,13 +583,16 @@ class ClosedLoopStimChoice(ShowBase):
         self.windowName = window_name
         self.windowProps.setTitle(self.windowName)
         self.windowProps.setSize(self.windowSize)
-        self.windowProps.set_undecorated(True)
-        self.windowProps.set_foreground(True)
-        self.window_position = win_pos
-        self.windowProps.set_origin(self.window_position)
+        if not gui:
+            self.windowProps.set_undecorated(True)
+            self.disable_mouse()
+            self.windowProps.set_foreground(True)
+            self.windowProps.set_origin(self.window_position)
+            self.window_position = win_pos
+        if gui:
+            self.windowProps.set_origin((600,600))
 
         ShowBaseGlobal.base.win.requestProperties(self.windowProps)  # base is panda3d
-        self.disable_mouse()
 
         self.default_freq = def_freq
         self.default_center_width = def_center_width
@@ -618,7 +623,7 @@ class ClosedLoopStimChoice(ShowBase):
             try:
                 self.current_stimulus['texture'] = self.textures['freq'][stimulus['freq']]
             except:
-                self.current_stimulus['texture'] = self.textures[self.default_freq]
+                self.current_stimulus['texture'] = self.textures['freq'][self.default_freq]
 
         elif stimulus['stim_type'] == 'b':
             self.current_stimulus = stimulus
@@ -630,11 +635,17 @@ class ClosedLoopStimChoice(ShowBase):
                 else:
                     self.current_stimulus['texture'] = [self.textures['freq'][stimulus['freq'][0]], self.textures['freq'][stimulus['freq'][1]]]
             except:
-                self.current_stimulus['texture'] = [self.textures[self.default_freq],self.textures[self.default_freq]]
+                self.current_stimulus['texture'] = [self.textures['freq'][self.default_freq],self.textures['freq'][self.default_freq]]
             try:
                 test_1 = self.current_stimulus['center_width']
             except KeyError:
                 self.current_stimulus['center_width'] = self.default_center_width
+
+        if stimulus is not None:
+            if 'stationary_time' in stimulus:
+                stimulus_stationary = tr.Thread(target=self.stimulus_stationary)
+                stimulus_stationary.start()
+
         self.curr_id += 1
 
         self.create_texture_stages()
@@ -642,12 +653,34 @@ class ClosedLoopStimChoice(ShowBase):
         self.set_texture_stages()
         self.set_transforms()
 
+        self.save()
+
+    def save(self):
         if self.filestream:
             saved_stim = dict(self.current_stimulus.copy())
             saved_stim.pop('texture')
             self.filestream.write("\n")
             self.filestream.write(f"{str(datetime.now())}: {self.curr_id} {saved_stim}")
             self.filestream.flush()
+
+
+    def stimulus_stationary(self):
+        if self.current_stimulus['stationary_time'] >= 0:
+            t_0 = time.time()
+            i_0 = self.curr_id
+            prev_vel = self.current_stimulus['velocity']
+            if self.current_stimulus['stim_type'] == 'b':
+                self.current_stimulus['velocity'] = (0,0)
+            else:
+                self.current_stimulus['velocity'] = 0
+            self.save()
+            while time.time() - t_0 <= self.current_stimulus['stationary_time']:
+                pass
+            self.current_stimulus['velocity'] = prev_vel
+            self.save()
+            return
+        else:
+            return
 
     def move_textures(self, task):
         # moving the stimuli

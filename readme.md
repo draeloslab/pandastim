@@ -9,7 +9,7 @@ This assumes you are using Anaconda and Python 3:
     conda create --name pstim
     conda activate pstim
     conda install numpy scipy matplotlib zeromq
-    pip install panda3d
+    pip install panda3d zmq pandas
 
 Once you've got your environment squared away, you can install pandastim by heading to the directory where you want it installed, and run:    
 

@@ -503,11 +503,11 @@ class BinocularFixed(BinocularMoving):
     """
     def __init__(self, stim, stim_angles = (0,0), strip_angle = 0,
                  position = (0, 0), strip_width = 4, fps = 30, 
-                 window_size = None, profile_on = False):     
+                 window_size = None, window_name=None, profile_on = False):
         super().__init__(stim, stim_angles = stim_angles, velocities = (0, 0),
                          strip_angle = strip_angle, strip_width = strip_width,
                          position = position, fps = fps, window_size = window_size, 
-                         profile_on = profile_on )
+                         profile_on = profile_on, window_name= window_name )
         self.window_properties.setTitle("BinocularStatic")
         ShowBaseGlobal.base.win.requestProperties(self.window_properties)
 

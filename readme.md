@@ -13,7 +13,7 @@ This assumes you are using Anaconda and Python 3:
 
 Once you've got your environment squared away, you can install pandastim by heading to the directory where you want it installed, and run:    
 
-    git clone https://github.com/EricThomson/pandastim.git
+    git clone https://github.com/mattdloring/pandastim.git
 
 To test the installation, try running one of the examples in [examples/readme.md](examples/readme.md). Since panda3d is sometimes fickle with IDEs, I always run scripts from the command line (e.g., `python -m examples.drifting_binocular_grating` if you are in the `pandastim` directory).
 

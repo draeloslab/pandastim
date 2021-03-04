@@ -7,8 +7,8 @@ logic of input-driven stimuli.
 
 Part of pandastim package: https://github.com/EricThomson/pandastim
 """
-import textures
-import stimuli
+from pandastim import textures, stimuli
+
 from datetime import datetime
 
 # Create list of textures, and parameter list for the two textures
@@ -21,7 +21,7 @@ stim_params = [{'angle': 45, 'velocity': 0.1},
 # Set up file path
 current_dt = datetime.now()
 filename = current_dt.strftime(("ks_%Y%m%d_%H%M%S.txt"))
-save_dir = r'./examples/data/'
+save_dir = r'./examples'
 file_path = save_dir + filename
 
 # Run the show

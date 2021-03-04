@@ -6,8 +6,7 @@ For info about profiling and the profile_on keyword, see pandastim/readme.md
 
 Part of pandastim package: https://github.com/EricThomson/pandastim
 """
-import textures
-import stimuli
+from pandastim import textures, stimuli
 
 stim = textures.SinRgbTex(rgb = (0, 255, 0), 
                           spatial_frequency = 20)

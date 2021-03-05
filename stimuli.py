@@ -612,6 +612,8 @@ class ClosedLoopStimChoice(ShowBase):
     def set_stimulus(self, stimulus):
         print(stimulus)
         self.clear_cards()
+        self._stat_finish = True
+        self._max_finish = True
 
         if stimulus is None or not 'stim_type' in stimulus:
             self.current_stimulus = {'stim_type': 's', 'velocity': 0, 'angle': 0, 'texture': self.textures['blank']}
@@ -643,8 +645,16 @@ class ClosedLoopStimChoice(ShowBase):
 
         if stimulus is not None:
             if 'stationary_time' in stimulus:
-                stimulus_stationary = tr.Thread(target=self.stimulus_stationary)
-                stimulus_stationary.start()
+                self._stat_finish = False
+                self._stimulus_stationary = tr.Thread(target=self.stimulus_stationary)
+                self._stimulus_stationary.start()
+
+
+            if 'stim_time' in stimulus:
+                if stimulus['stim_time'] != 0:
+                    self._max_finish = False
+                    self.max_time = tr.Thread(target=self.stimulus_max_duration)
+                    self.max_time.start()
 
         self.curr_id += 1
 
@@ -663,19 +673,30 @@ class ClosedLoopStimChoice(ShowBase):
             self.filestream.write(f"{str(datetime.now())}: {self.curr_id} {saved_stim}")
             self.filestream.flush()
 
+    def stimulus_max_duration(self):
+        t_0 = time.time()
+        while time.time() - t_0 <= self.current_stimulus['stim_time']:
+            if self._max_finish:
+                break
+            pass
+        if not self._max_finish:
+            self.set_stimulus({'stim_type': 'blank', 'velocity': 0, 'angle': 0, 'texture': self.textures['blank']})
+            return
+        else:
+            return
+
 
     def stimulus_stationary(self):
         if self.current_stimulus['stationary_time'] >= 0:
             t_0 = time.time()
-            i_0 = self.curr_id
             prev_vel = self.current_stimulus['velocity']
-            if self.current_stimulus['stim_type'] == 'b':
-                self.current_stimulus['velocity'] = (0,0)
-            else:
-                self.current_stimulus['velocity'] = 0
+            self.current_stimulus['velocity'] = 0
             self.save()
             while time.time() - t_0 <= self.current_stimulus['stationary_time']:
+                if self._stat_finish:
+                    break
                 pass
+
             self.current_stimulus['velocity'] = prev_vel
             self.save()
             return

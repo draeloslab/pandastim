@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MainWindow</class>
- <widget class="QMainWindow" name="MainWindow">
+ <class>PandasGui</class>
+ <widget class="QMainWindow" name="PandasGui">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>839</width>
-    <height>557</height>
+    <width>835</width>
+    <height>548</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Pandas Gui</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QTabWidget" name="tabs">
@@ -160,10 +160,10 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="label_6">
-         <property name="text">
-          <string>Frequency</string>
+       <item row="3" column="1">
+        <widget class="QDoubleSpinBox" name="b_vel_0">
+         <property name="singleStep">
+          <double>0.010000000000000</double>
          </property>
         </widget>
        </item>
@@ -184,6 +184,29 @@
          </property>
         </widget>
        </item>
+       <item row="3" column="2">
+        <widget class="QDoubleSpinBox" name="b_vel_1">
+         <property name="singleStep">
+          <double>0.010000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="2">
+        <widget class="QDoubleSpinBox" name="b_stat_1"/>
+       </item>
+       <item row="4" column="1">
+        <widget class="QDoubleSpinBox" name="b_angle_0">
+         <property name="minimum">
+          <double>-360.000000000000000</double>
+         </property>
+         <property name="maximum">
+          <double>360.000000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QDoubleSpinBox" name="b_stat_0"/>
+       </item>
        <item row="1" column="2">
         <widget class="QLabel" name="label_8">
          <property name="text">
@@ -201,13 +224,6 @@
          </property>
         </widget>
        </item>
-       <item row="4" column="0">
-        <widget class="QLabel" name="label_10">
-         <property name="text">
-          <string>Angle</string>
-         </property>
-        </widget>
-       </item>
        <item row="6" column="0">
         <widget class="QLabel" name="label_12">
          <property name="text">
@@ -215,17 +231,33 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="1">
-        <widget class="QDoubleSpinBox" name="b_vel_0">
-         <property name="singleStep">
-          <double>0.010000000000000</double>
+       <item row="4" column="0">
+        <widget class="QLabel" name="label_10">
+         <property name="text">
+          <string>Angle</string>
          </property>
         </widget>
        </item>
-       <item row="3" column="2">
-        <widget class="QDoubleSpinBox" name="b_vel_1">
-         <property name="singleStep">
-          <double>0.010000000000000</double>
+       <item row="4" column="2">
+        <widget class="QDoubleSpinBox" name="b_angle_1">
+         <property name="minimum">
+          <double>-360.000000000000000</double>
+         </property>
+         <property name="maximum">
+          <double>360.000000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="1">
+        <widget class="QDoubleSpinBox" name="b_t_0"/>
+       </item>
+       <item row="6" column="2">
+        <widget class="QDoubleSpinBox" name="b_t_1"/>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_6">
+         <property name="text">
+          <string>Frequency</string>
          </property>
         </widget>
        </item>
@@ -256,6 +288,51 @@
       <property name="value">
        <number>12</number>
       </property>
+     </widget>
+     <widget class="QSplitter" name="splitter">
+      <property name="geometry">
+       <rect>
+        <x>310</x>
+        <y>370</y>
+        <width>208</width>
+        <height>24</height>
+       </rect>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <widget class="QLabel" name="label_14">
+       <property name="text">
+        <string>center x</string>
+       </property>
+      </widget>
+      <widget class="QDoubleSpinBox" name="ctr_x">
+       <property name="minimum">
+        <double>-1.000000000000000</double>
+       </property>
+       <property name="maximum">
+        <double>1.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.100000000000000</double>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_15">
+       <property name="text">
+        <string>center y</string>
+       </property>
+      </widget>
+      <widget class="QDoubleSpinBox" name="ctr_y">
+       <property name="minimum">
+        <double>-1.000000000000000</double>
+       </property>
+       <property name="maximum">
+        <double>1.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.100000000000000</double>
+       </property>
+      </widget>
      </widget>
     </widget>
     <widget class="QWidget" name="tab">
@@ -296,8 +373,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>839</width>
-     <height>21</height>
+     <width>835</width>
+     <height>26</height>
     </rect>
    </property>
   </widget>

@@ -587,8 +587,8 @@ class ClosedLoopStimChoice(ShowBase):
             self.windowProps.set_undecorated(True)
             self.disable_mouse()
             self.windowProps.set_foreground(True)
-            self.windowProps.set_origin(self.window_position)
             self.window_position = win_pos
+            self.windowProps.set_origin(self.window_position)
         if gui:
             self.windowProps.set_origin((600,600))
 
@@ -616,7 +616,7 @@ class ClosedLoopStimChoice(ShowBase):
         self._max_finish = True
 
         if stimulus is None or not 'stim_type' in stimulus:
-            self.current_stimulus = {'stim_type': 's', 'velocity': 0, 'angle': 0, 'texture': self.textures['blank']}
+            self.current_stimulus = {'stim_type': 'blank', 'velocity': 0, 'angle': 0, 'texture': self.textures['blank']}
             print('defaulting to blank')
         elif stimulus['stim_type'] == 'blank':
             self.current_stimulus = {'stim_type': 's', 'velocity': 0, 'angle': 0, 'texture': self.textures['blank']}
@@ -691,7 +691,7 @@ class ClosedLoopStimChoice(ShowBase):
             t_0 = time.time()
             prev_vel = self.current_stimulus['velocity']
             self.current_stimulus['velocity'] = 0
-            self.save()
+            # self.save()
             while time.time() - t_0 <= self.current_stimulus['stationary_time']:
                 if self._stat_finish:
                     break

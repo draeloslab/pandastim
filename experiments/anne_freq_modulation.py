@@ -63,7 +63,7 @@ for f in freqs:
 def stims(port="5005"):
     stimulation = stimuli.ClosedLoopStimChoice(textures=input_textures, save_path=svepath)
 
-    sub = utils.Subscriber(topic="stim", port="5005")
+    sub = utils.Subscriber(topic="stim", port=port)
     monitor = utils.MonitorDataPass(sub)
     stimulation.run()
 

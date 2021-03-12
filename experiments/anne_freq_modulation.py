@@ -49,7 +49,7 @@ def create_prot():
     df.loc[:, 'duration'] = duration
     return df
 
-svepath = r'C:\Soft_Kitty\Anaconda3\envs\clean_pstim\Lib\site-packages\pandastim\experiments\temp1.txt'
+svepath = 'temp1.txt'
 
 tex_size = (1024, 1024)
 freqs = np.arange(101)

@@ -216,6 +216,36 @@ class Emitter(DirectObject.DirectObject):
     def kill(self):
         self.run_thread.join()
 
+
+def sequence_runner(df, port="5005"):
+    # this runs a dataframe of stimuli for you
+    time.sleep(15)
+
+    _context = zmq.Context()
+    _socket = _context.socket(zmq.PUB)
+    _socket.bind('tcp://*:' + str(port))
+    stimulus_topic = 'stim'
+
+    stim_n = 0
+
+    current_length = df.loc[stim_n].duration + df.loc[stim_n].stationary_time
+    t0 = time.time()
+
+    _socket.send_string(stimulus_topic, zmq.SNDMORE)
+    _socket.send_pyobj(df.loc[stim_n])
+
+    while stim_n <= len(df) - 1:
+        if time.time() - t0 <= current_length:
+            pass
+        else:
+            stim_n += 1
+
+            current_length = df.loc[stim_n].duration + df.loc[stim_n].stationary_time
+            t0 = time.time()
+            _socket.send_string(stimulus_topic, zmq.SNDMORE)
+            _socket.send_pyobj(df.loc[stim_n])
+
+
         
 #%%        
 if __name__ == '__main__':

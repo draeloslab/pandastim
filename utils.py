@@ -219,11 +219,8 @@ class Emitter(DirectObject.DirectObject):
 
 def sequence_runner(df, port="5005"):
     # this runs a dataframe of stimuli for you
-<<<<<<< Updated upstream
-    time.sleep(15)
-=======
+
     time.sleep(5)
->>>>>>> Stashed changes
 
     _context = zmq.Context()
     _socket = _context.socket(zmq.PUB)

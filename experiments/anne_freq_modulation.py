@@ -11,16 +11,11 @@ def create_prot():
     angles = []
     frequencies = []
 
-<<<<<<< Updated upstream
 
     _freqs = np.arange(2,100,16)
     _angles = np.arange(0,360,45)
     _vels = np.arange(0,0.21,0.04)
-=======
-    _freqs = np.arange(2, 100, 16)
-    _angles = np.arange(0, 360, 45)
-    _vels = np.arange(0, 0.21, 0.04)
->>>>>>> Stashed changes
+
 
     # monoc first
     for f in _freqs:
@@ -40,15 +35,10 @@ def create_prot():
         for theta in _bin_angles:
             for v in _bin_vels:
                 stim_types.append('b')
-<<<<<<< Updated upstream
                 frequencies.append([f,f])
                 angles.append([theta,theta])
                 velocities.append([v,v])
-    _dic = {'stim_type':stim_types, "frequency" : frequencies, "angle":angles, "velocity":velocities}
-=======
-                frequencies.append([f, f])
-                angles.append([theta, theta])
-                velocities.append([v, v])
+
 
     for f in _bin_freqs:
         for theta in _bin_angles:
@@ -67,7 +57,6 @@ def create_prot():
                 velocities.append([v, 0])
 
     _dic = {'stim_type': stim_types, "frequency": frequencies, "angle": angles, "velocity": velocities}
->>>>>>> Stashed changes
 
     df = pd.DataFrame(_dic)
     df = df.sample(frac=1).reset_index(drop=True)

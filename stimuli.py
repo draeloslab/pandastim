@@ -690,14 +690,12 @@ class ClosedLoopStimChoice(ShowBase):
         if self.current_stimulus['stationary_time'] >= 0:
             t_0 = time.time()
             prev_vel = self.current_stimulus['velocity']
-<<<<<<< Updated upstream
+
             self.current_stimulus['velocity'] = 0
-=======
             if self.current_stimulus.stim_type=='b':
                 self.current_stimulus['velocity'] = [0,0]
             else:
                 self.current_stimulus['velocity'] = 0
->>>>>>> Stashed changes
             # self.save()
             while time.time() - t_0 <= self.current_stimulus['stationary_time']:
                 if self._stat_finish:

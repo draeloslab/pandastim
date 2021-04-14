@@ -162,6 +162,12 @@
        </item>
        <item row="3" column="1">
         <widget class="QDoubleSpinBox" name="b_vel_0">
+         <property name="minimum">
+          <double>-5.000000000000000</double>
+         </property>
+         <property name="maximum">
+          <double>5.000000000000000</double>
+         </property>
          <property name="singleStep">
           <double>0.010000000000000</double>
          </property>
@@ -186,6 +192,12 @@
        </item>
        <item row="3" column="2">
         <widget class="QDoubleSpinBox" name="b_vel_1">
+         <property name="minimum">
+          <double>-5.000000000000000</double>
+         </property>
+         <property name="maximum">
+          <double>5.000000000000000</double>
+         </property>
          <property name="singleStep">
           <double>0.010000000000000</double>
          </property>
@@ -263,38 +275,12 @@
        </item>
       </layout>
      </widget>
-     <widget class="QLabel" name="label_13">
+     <widget class="QSplitter" name="splitter">
       <property name="geometry">
        <rect>
         <x>10</x>
         <y>370</y>
-        <width>81</width>
-        <height>23</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Center Width</string>
-      </property>
-     </widget>
-     <widget class="QSpinBox" name="spinBox_3">
-      <property name="geometry">
-       <rect>
-        <x>90</x>
-        <y>370</y>
-        <width>31</width>
-        <height>23</height>
-       </rect>
-      </property>
-      <property name="value">
-       <number>12</number>
-      </property>
-     </widget>
-     <widget class="QSplitter" name="splitter">
-      <property name="geometry">
-       <rect>
-        <x>310</x>
-        <y>370</y>
-        <width>208</width>
+        <width>771</width>
         <height>24</height>
        </rect>
       </property>
@@ -331,6 +317,32 @@
        </property>
        <property name="singleStep">
         <double>0.100000000000000</double>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_16">
+       <property name="text">
+        <string>strip angle</string>
+       </property>
+      </widget>
+      <widget class="QDoubleSpinBox" name="strip_angle">
+       <property name="minimum">
+        <double>-360.000000000000000</double>
+       </property>
+       <property name="maximum">
+        <double>360.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>1.000000000000000</double>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_13">
+       <property name="text">
+        <string>Center Width</string>
+       </property>
+      </widget>
+      <widget class="QSpinBox" name="b_center_width">
+       <property name="value">
+        <number>12</number>
        </property>
       </widget>
      </widget>

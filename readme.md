@@ -17,6 +17,10 @@ Once you've got your environment squared away, you can install pandastim by head
 
 To test the installation, try running one of the examples in [examples/readme.md](examples/readme.md). Since panda3d is sometimes fickle with IDEs, I always run scripts from the command line (e.g., `python -m examples.drifting_binocular_grating` if you are in the `pandastim` directory).
 
+The pandastim gui can be run from the command line inside the environment:
+    
+    python -m pandastim
+    
 ### Package structure
 The three main modules:
 - `stimuli.py`: instances of `ShowBase`, the panda3d class that is used to render scenes.  Can be as simple as showing a static grey sinusoidal grating, or showing a sequence of stimuli locked to an input signal from some external source.
@@ -56,8 +60,7 @@ PEP8, largely. UpperCamelCase for classes; lower_case_underscore for vars/functi
 Thanks to rdb (developer of panda3d) who provided lots of help figuring out how to efficiently do 2d things in a 3d game engine. Also the panda3d community in general has been very helpful.
 
 #### To do
-- For InputControlParams, add checks for same inputs -- don't change transform if the inputs are the same (decide how fine-grained to make this)
-- Find good example of weird rendiering differences with two angles, and ask about it @panda3d.
+
 - Create open loop stim class.
 - Create new stimulus classes
     - scaling
@@ -67,13 +70,8 @@ Thanks to rdb (developer of panda3d) who provided lots of help figuring out how 
     - radial grating stimulus:
 - Add contrast to sines/gratings
 - Independent color of middle band? Right now it is constrained to be the background color (black)
-- Add independent velocities/textures for binocular stimuli (so left/right can have different textures).
-- Consider making monitor a process, or use zmq iostream features: see `working/monitoring_notes.txt`.
 - Document how to make a new texture class and stim class.
-- How to close programatically? Would be useful for smoothness and also could add time/close signal code to save file.
-- How to ensure there is a texture (avoid `Assertion failed: !is_empty()`) Seems you are asking for bugs. Note cards made most recently will show on top of other cards. You could make them invisible temporarily or something. Ultimately add a third stim type and test this it will be a bit messy: you will want to generate a list of stim types, and then when you have one type, delete the other types in clear_cards, not just the one we are about to switch away from.
 - It seems when stimuli switch over there is some shearing/tearing of the texture for the first few ms.
-- It is a known issue that pub/sub in zeromq misses the first message published. To overcome this, sync up the pub/sub first, before you start publishing: https://stackoverflow.com/a/25580646/1886357. Or you could just send a bunch of 0's initially to get them sync'd up.
 - check with photodiode at different locations on window: is it identical?
 - try compressing textures? (https://www.panda3d.org/manual/?title=Texture_Compression)
 - Consider porting to `pixel2d` (basics are in working/)? then everything will be in pixel-based coordinates rather than normalized.

@@ -319,15 +319,20 @@ class GratingGrayTexXY(TextureBaseXY):
     """
 
     def __init__(self, texture_size=512, texture_name="grating_gray",
-                 spatial_frequency=10):
+                 spatial_frequency=10, dark_val=0, light_val=255):
         self.frequency = spatial_frequency
+        self.dark_val = dark_val
+        self.light_val = light_val
         super().__init__(texture_size=texture_size, texture_name=texture_name)
 
     def create_texture(self):
         x = np.linspace(0, 2 * np.pi, self.texture_size[0] + 1)
         y = np.linspace(0, 2 * np.pi, self.texture_size[1] + 1)
         X, Y = np.meshgrid(x[: self.texture_size[0]], y[: self.texture_size[1]])
-        return utils.grating_byte(X, freq=self.frequency)
+        tex = utils.grating_byte(X, freq=self.frequency)
+        tex[tex==0] = self.dark_val
+        tex[tex==255] = self.light_val
+        return tex
 
     def __str__(self):
         return f"{type(self).__name__} size:{self.texture_size} frequency:{self.frequency}"

@@ -11,16 +11,16 @@ def create_prot():
     angles = []
     frequencies = []
 
-<<<<<<< Updated upstream
+
 
     _freqs = np.arange(2,100,16)
     _angles = np.arange(0,360,45)
     _vels = np.arange(0,0.21,0.04)
-=======
+
     _freqs = np.arange(2, 100, 16)
     _angles = np.arange(0, 360, 45)
     _vels = np.arange(0, 0.21, 0.04)
->>>>>>> Stashed changes
+
 
     # monoc first
     for f in _freqs:
@@ -29,7 +29,7 @@ def create_prot():
                 stim_types.append('s')
                 frequencies.append(f)
                 angles.append(theta)
-                velocities.append(v)
+                velocities.append(-v)
 
     _bin_angles = _angles[::2]
     _bin_freqs = _freqs[2:-1]
@@ -40,15 +40,9 @@ def create_prot():
         for theta in _bin_angles:
             for v in _bin_vels:
                 stim_types.append('b')
-<<<<<<< Updated upstream
                 frequencies.append([f,f])
                 angles.append([theta,theta])
-                velocities.append([v,v])
-    _dic = {'stim_type':stim_types, "frequency" : frequencies, "angle":angles, "velocity":velocities}
-=======
-                frequencies.append([f, f])
-                angles.append([theta, theta])
-                velocities.append([v, v])
+                velocities.append([-v,-v])
 
     for f in _bin_freqs:
         for theta in _bin_angles:
@@ -56,7 +50,7 @@ def create_prot():
                 stim_types.append('b')
                 frequencies.append([f, f])
                 angles.append([theta, theta])
-                velocities.append([0, v])
+                velocities.append([0, -v])
 
     for f in _bin_freqs:
         for theta in _bin_angles:
@@ -64,10 +58,10 @@ def create_prot():
                 stim_types.append('b')
                 frequencies.append([f, f])
                 angles.append([theta, theta])
-                velocities.append([v, 0])
+                velocities.append([-v, 0])
 
     _dic = {'stim_type': stim_types, "frequency": frequencies, "angle": angles, "velocity": velocities}
->>>>>>> Stashed changes
+
 
     df = pd.DataFrame(_dic)
     df = df.sample(frac=1).reset_index(drop=True)
@@ -77,6 +71,7 @@ def create_prot():
 
     df.loc[:, 'stationary_time'] = stat_time
     df.loc[:, 'duration'] = duration
+    df = pd.concat([df]*3, ignore_index=True)
     return df
 
 svepath = 'temp1.txt'

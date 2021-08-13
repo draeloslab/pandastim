@@ -5,13 +5,16 @@ implements the main event loop in panda3d).
 
 Part of pandastim package: https://github.com/EricThomson/pandastim
 """
-from pandastim import utils
+from pandastim import utils, textures
 
 import sys
 import numpy as np
 import logging
 import threading as tr
 import time
+import zmq
+
+import concurrent.futures
 
 from direct.showbase.ShowBase import ShowBase
 from direct.showbase import ShowBaseGlobal  #global vars defined by p3d
@@ -550,18 +553,35 @@ class ClosedLoopStimChoice(ShowBase):
 
     stimuli contains possible stim choices
     """
-    def __init__(self, textures, def_freq=32, def_center_width=16, scale=8, fps=60, save_path=None,
-                 window_size=None, win_pos=(0,0),window_name='Pandastim',
-                 fish_id=None, fish_age=None, profile_on=False, gui=False):
+    def __init__(self, input_textures=None, def_freq=32, def_center_width=16, scale=8, fps=60, save_path=None,
+                 window_size=None, win_pos=(2400, 1080//4),window_name='Pandastim', live_update=False, debug=False,
+                 fish_id=None, fish_age=None, profile_on=False, gui=False, publisher_port=5009):
 
         super().__init__()
 
-        self.textures = textures
+        if window_size is None:
+            self.windowSize = (1024, 1024)
+        else:
+            self.windowSize = window_size
+
+        self.live_update = live_update
+        if not self.live_update:
+            self.textures = input_textures
+            if 'full' in self.textures:
+                self.texdf = self.textures['full']
+        else:
+            self.textures = {'blank': textures.BlankTexXY(texture_size=self.windowSize),
+                             'next_texture': None,
+                             'default_texture': textures.GratingGrayTexXY(texture_size=self.windowSize, spatial_frequency=def_freq)}
 
         self.scale = np.sqrt(scale)
         self.fps = fps
         ShowBaseGlobal.globalClock.setMode(ClockObject.MLimited)
         ShowBaseGlobal.globalClock.setFrameRate(self.fps)
+
+        self._context = zmq.Context()
+        self._socket = self._context.socket(zmq.PUB)
+        self._socket.bind('tcp://*:' + str(publisher_port))
 
         self.profileOn = profile_on
         if self.profileOn:
@@ -574,32 +594,33 @@ class ClosedLoopStimChoice(ShowBase):
         else:
             self.filestream = None
 
-        if window_size is None:
-            self.windowSize = (1024, 1024)
-        else:
-            self.windowSize = window_size
-
         self.windowProps = WindowProperties()
         self.windowName = window_name
         self.windowProps.setTitle(self.windowName)
         self.windowProps.setSize(self.windowSize)
-        if not gui:
-            self.windowProps.set_undecorated(True)
-            self.disable_mouse()
-            self.windowProps.set_foreground(True)
-            self.window_position = win_pos
-            self.windowProps.set_origin(self.window_position)
-        if gui:
-            self.windowProps.set_origin((600,600))
+        if not debug:
+            if not gui:
+                self.windowProps.set_undecorated(True)
+                self.disable_mouse()
+                self.windowProps.set_foreground(True)
+                self.window_position = win_pos
+                self.windowProps.set_origin(self.window_position)
+            if gui:
+                # self.windowProps.set_origin((600,600))
+                self.windowProps.set_undecorated(True)
+                self.disable_mouse()
+                self.windowProps.set_foreground(True)
+                self.window_position = win_pos
+                self.windowProps.set_origin(self.window_position)
 
         ShowBaseGlobal.base.win.requestProperties(self.windowProps)  # base is panda3d
 
         self.default_freq = def_freq
         self.default_center_width = def_center_width
 
-        self.rotation_offset = 0
+        self.rotation_offset = -90
         self.strip_angle = 0
-        self.center_x = 0
+        self.center_x = -0.1
         self.center_y = 0
 
         self.curr_id = 0
@@ -608,40 +629,184 @@ class ClosedLoopStimChoice(ShowBase):
         self.taskMgr.add(self.move_textures, "move textures")
 
         self.accept("stimulus", self.set_stimulus, [])
+        self.accept("stimulus_loader", self.create_next_texture, [])
+
+    def create_next_texture(self, stimulus):
+        inputs = stimulus, self.windowSize
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(self.texture_creater, inputs)
+            self.textures['next_texture'] = future.result()
+            print(f'created: {stimulus}')
+            self._socket.send_pyobj(f"LOADED {str(datetime.now())}: {self.curr_id} {stimulus}")
+
+    @staticmethod
+    def texture_creater(inputs):
+        stimulus, size = inputs
+        try:
+            lv = stimulus['lightValue']
+        except:
+            lv = 255
+            print(f'no lv provided, using: {lv}')
+
+        try:
+            dv = stimulus['darkValue']
+        except:
+            dv = 0
+            print(f'no dv provided, using: {dv}')
+
+
+        try:
+            f = stimulus['frequency']
+        except:
+            f = 32
+            print(f'no frequency provided, using: {f}')
+
+        tex = textures.GratingGrayTexXY(texture_size=size, spatial_frequency=f, dark_val=dv, light_val=lv)
+        return tex
 
     def set_stimulus(self, stimulus):
-        print(stimulus)
+        try:
+	        print(stimulus.stimulus_name)
+        except:
+	        print(stimulus)
+
+        self._socket.send_pyobj(f"stimid {str(datetime.now())}: {self.curr_id} {stimulus}")
+
         self.clear_cards()
         self._stat_finish = True
         self._max_finish = True
 
         if stimulus is None or not 'stim_type' in stimulus:
+            print('the cat is blank')
             self.current_stimulus = {'stim_type': 'blank', 'velocity': 0, 'angle': 0, 'texture': self.textures['blank']}
             print('defaulting to blank')
         elif stimulus['stim_type'] == 'blank':
-            self.current_stimulus = {'stim_type': 's', 'velocity': 0, 'angle': 0, 'texture': self.textures['blank']}
+            self.current_stimulus = {'stim_type': 'blank', 'velocity': 0, 'angle': 0, 'texture': self.textures['blank']}
         elif stimulus['stim_type'] == 's':
             self.current_stimulus = stimulus
-            try:
-                self.current_stimulus['texture'] = self.textures['freq'][stimulus['freq']]
-            except:
-                self.current_stimulus['texture'] = self.textures['freq'][self.default_freq]
+            if not self.live_update:
+                if 'full' in self.textures:
+                    print('light dark enabled')
+                    try:
+                        lv = stimulus['lightValue']
+                        if lv not in np.arange(0,255, 30) and lv != 255:
+                            lv = 255
+                            print('lv not acceptable, resetting to 255')
+                    except:
+                        print('error setting light value')
+                        lv = 255
+                    try:
+                        dv = stimulus['darkValue']
+                        if dv not in np.arange(0,255, 30):
+                            dv = 0
+                            print('dv not acceptable, resetting to 0')
+                    except:
+                        print('error setting dark value')
+                        dv = 0
+                    try:
+                        f = stimulus['frequency']
+                    except:
+                        print('error setting frequency')
+                        f = 32
+                    alltex = self.texdf[(self.texdf.lightVal==lv)&(self.texdf.darkVal==dv)&(self.texdf.freq==f)].texture.values
+                    if len(alltex) >= 1:
+                        tex = alltex[0]
+                    else:
+                        print('no textures found, using default')
+                        lv = 255
+                        dv = 0
+                        f = 32
+                        tex = self.texdf[(self.texdf.lightVal == lv) & (self.texdf.darkVal == dv) & (
+                                    self.texdf.freq == f)].texture.values[0]
+                    self.current_stimulus['texture'] = tex
+                    # print('set tex', tex)
+                    #except:
+                        #print('error setting light dark')
+                        #self.current_stimulus = {'stim_type': 'blank', 'velocity': 0, 'angle': 0,
+                                                 #'texture': self.textures['blank']}
+
+                else:
+                    try:
+                        self.current_stimulus['texture'] = self.textures['freq'][stimulus['freq']]
+                    except:
+                        self.current_stimulus['texture'] = self.textures['freq'][self.default_freq]
+            else:
+                if self.textures['next_texture'] is not None:
+                    self.current_stimulus['texture'] = self.textures['next_texture']
+                    self.textures['next_texture'] = None
+                else:
+                    self.current_stimulus['texture'] = self.textures['default_texture']
 
         elif stimulus['stim_type'] == 'b':
             self.current_stimulus = stimulus
+            if not self.live_update:
+                if 'full' in self.textures:
+                    try:
+                        lv = stimulus['lightValue']
+                        if lv[0] not in np.arange(0,255, 30) and lv[0] != 255:
+                            lv[0] = 255
+                            print('lv0 not acceptable, resetting to 255')
+                        if lv[1] not in np.arange(0,255, 30) and lv[1] != 255:
+                            lv[1] = 255
+                            print('lv1 not acceptable, resetting to 255')
+                    except:
+                        print('error setting light value')
+                        lv = (255,255)
 
-            try:
-                if isinstance(stimulus['freq'], int):
-                    self.current_stimulus['texture'] = [self.textures['freq'][stimulus['freq']],
-                                                        self.textures['freq'][stimulus['freq']]]
+                    try:
+                        dv = stimulus['darkValue']
+                        if dv[0] not in np.arange(0,255, 30):
+                            dv[0] = 0
+                            print('dv0 not acceptable, resetting to 0')
+                        if dv[1] not in np.arange(0,255, 30):
+                            dv[1] = 0
+                            print('dv1 not acceptable, resetting to 0')
+                    except:
+                        print('error setting dark value')
+                        dv = (0, 0)
+
+                    try:
+                        f = stimulus['frequency']
+                    except:
+                        print('error setting frequency')
+                        f = (32, 32)
+
+                    alltex1 = self.texdf[(self.texdf.lightVal==lv[0])&(self.texdf.darkVal==dv[0])&(self.texdf.freq==f[0])].texture.values
+                    alltex2 = self.texdf[(self.texdf.lightVal==lv[1])&(self.texdf.darkVal==dv[1])&(self.texdf.freq==f[1])].texture.values
+                    if len(alltex1) >= 1:
+                        tex1 = alltex1[0]
+                    else:
+                        print('tex 0 no textures found, using default')
+                        tex1 = self.texdf[(self.texdf.lightVal == 255) & (self.texdf.darkVal == 0) & (
+                                    self.texdf.freq == 32)].texture.values
+                    if len(alltex2) >= 1:
+                        tex2 = alltex2[0]
+                    else:
+                        print('tex 1 no textures found, using default')
+                        tex2 = self.texdf[(self.texdf.lightVal == 255) & (self.texdf.darkVal == 0) & (
+                                self.texdf.freq == 32)].texture.values
+                    self.current_stimulus['texture'] = [tex1, tex2]
+
                 else:
-                    self.current_stimulus['texture'] = [self.textures['freq'][stimulus['freq'][0]], self.textures['freq'][stimulus['freq'][1]]]
-            except:
-                self.current_stimulus['texture'] = [self.textures['freq'][self.default_freq],self.textures['freq'][self.default_freq]]
-            try:
-                test_1 = self.current_stimulus['center_width']
-            except KeyError:
-                self.current_stimulus['center_width'] = self.default_center_width
+                    try:
+                        if isinstance(stimulus['freq'], int):
+                            self.current_stimulus['texture'] = [self.textures['freq'][stimulus['freq']],
+                                                                self.textures['freq'][stimulus['freq']]]
+                        else:
+                            self.current_stimulus['texture'] = [self.textures['freq'][stimulus['freq'][0]], self.textures['freq'][stimulus['freq'][1]]]
+                    except:
+                        self.current_stimulus['texture'] = [self.textures['freq'][self.default_freq],self.textures['freq'][self.default_freq]]
+                try:
+                    test_1 = self.current_stimulus['center_width']
+                except KeyError:
+                    self.current_stimulus['center_width'] = self.default_center_width
+            else:
+                if self.textures['next_texture'] is not None:
+                    self.current_stimulus['texture'] = self.textures['next_texture']
+                    self.textures['next_texture'] = None
+                else:
+                    self.current_stimulus['texture'] = [self.textures['default_texture'], self.textures['default_texture']]
 
         if stimulus is not None:
             if 'stationary_time' in stimulus:
@@ -669,53 +834,144 @@ class ClosedLoopStimChoice(ShowBase):
         if self.filestream:
             saved_stim = dict(self.current_stimulus.copy())
             saved_stim.pop('texture')
+
+
             self.filestream.write("\n")
             self.filestream.write(f"{str(datetime.now())}: {self.curr_id} {saved_stim}")
             self.filestream.flush()
 
+
     def stimulus_max_duration(self):
-        t_0 = time.time()
-        while time.time() - t_0 <= self.current_stimulus['stim_time']:
-            if self._max_finish:
-                break
-            pass
-        if not self._max_finish:
-            self.set_stimulus({'stim_type': 'blank', 'velocity': 0, 'angle': 0, 'texture': self.textures['blank']})
-            return
-        else:
-            return
 
+        if self.current_stimulus['stim_type'] == 's':
+            if self.current_stimulus['stim_time'] > 0:
+                try:
+                    if self.current_stimulus['stim_time'] <= self.current_stimulus['stationary_time']:
+                        self.current_stimulus['stim_time'] += self.current_stimulus['stationary_time']
+                except KeyError:
+                    pass
 
-    def stimulus_stationary(self):
-        if self.current_stimulus['stationary_time'] >= 0:
-            t_0 = time.time()
-            prev_vel = self.current_stimulus['velocity']
-<<<<<<< Updated upstream
-            self.current_stimulus['velocity'] = 0
-=======
-            if self.current_stimulus.stim_type=='b':
-                self.current_stimulus['velocity'] = [0,0]
+                t_0 = time.time()
+                while time.time() - t_0 <= self.current_stimulus['stim_time']:
+                    if self._max_finish:
+                        break
+                    pass
+
+            if not self._max_finish:
+                self.set_stimulus({'stim_type': 'blank', 'velocity': 0, 'angle': 0, 'texture': self.textures['blank']})
+                return
             else:
-                self.current_stimulus['velocity'] = 0
->>>>>>> Stashed changes
-            # self.save()
-            while time.time() - t_0 <= self.current_stimulus['stationary_time']:
-                if self._stat_finish:
-                    break
+                return
+        elif self.current_stimulus['stim_type'] == 'b':
+            t0, t1 = self.current_stimulus['stim_time']
+            try:
+                stat_time_0, stat_time_1 = self.current_stimulus['stationary_time']
+
+                if t0 <= stat_time_0:
+                    t0 += stat_time_0
+                if t1 <= stat_time_1:
+                    t1 += stat_time_1
+            except KeyError:
                 pass
 
-            self.current_stimulus['velocity'] = prev_vel
-            self.save()
-            return
-        else:
-            return
+            still_running = True
+
+            if t0 == 0:
+                a_done = True
+            else:
+                a_done = False
+            if t1 == 0:
+                b_done = True
+            else:
+                b_done = False
+
+            if t0 or t1 > 0:
+                _t0 = time.time()
+                while still_running:
+                    elapsed = time.time() - _t0
+                    if elapsed >= t0 and not a_done:
+                        self.left_card.detachNode()
+                        self.current_stimulus['texture'][0] = self.textures['blank']
+                        self.save()
+                        a_done = True
+                    if elapsed >= t1 and not b_done:
+                        self.right_card.detachNode()
+                        self.current_stimulus['texture'][1] = self.textures['blank']
+                        self.save()
+                        b_done = True
+                    if a_done and b_done:
+                        still_running = False
+                        break
+
+            else:
+                return
+
+    def stimulus_stationary(self):
+        if self.current_stimulus['stim_type'] == 's':
+            if self.current_stimulus['stationary_time'] >= 0:
+                t_0 = time.time()
+                prev_vel = self.current_stimulus['velocity']
+                self.current_stimulus['velocity'] = 0
+                self.save()
+                self._socket.send_pyobj(f" STATIONARY {str(datetime.now())}: {self.curr_id} {self.current_stimulus}")
+
+                while time.time() - t_0 <= self.current_stimulus['stationary_time']:
+                    if self._stat_finish:
+                        break
+                    pass
+
+                self.current_stimulus['velocity'] = prev_vel
+                self._socket.send_pyobj(f" MOVING {str(datetime.now())}: {self.curr_id} {self.current_stimulus}")
+
+                self.save()
+                return
+            else:
+                return
+        if self.current_stimulus['stim_type'] == 'b':
+            if isinstance(self.current_stimulus['stationary_time'], np.int64):
+                self.current_stimulus['stationary_time'] = [self.current_stimulus['stationary_time'], self.current_stimulus['stationary_time']]
+            stat_time_0, stat_time_1 = self.current_stimulus['stationary_time']
+            a0 = False
+            a1 = False
+
+            if stat_time_0 or stat_time_1 >= 0:
+
+                v0, v1 = self.current_stimulus['velocity']
+                t_0 = time.time()
+
+                if stat_time_0 > 0:
+                    self.current_stimulus['velocity'][0] = 0
+                    a0 = True
+                if stat_time_1 > 0:
+                    self.current_stimulus['velocity'][1] = 0
+                    a1 = True
+
+                self.save()
+                while True:
+                    if self._stat_finish:
+                        break
+                    if not a0 and not a1:
+                        break
+
+                    if time.time() - t_0 >= stat_time_0 and a0 :
+                        self.current_stimulus['velocity'][0] = v0
+                        a0 = False
+                        self.save()
+
+                    if time.time() - t_0 >= stat_time_1 and a1:
+                        self.current_stimulus['velocity'][1] = v1
+                        a1 = False
+                        self.save()
+
+            else:
+                return
 
     def move_textures(self, task):
         # moving the stimuli
         # print(self.current_stim)
         if self.current_stimulus['stim_type'] == 'b':
-            left_tex_position = -task.time * self.current_stimulus['velocity'][0]  # negative b/c texture stage
-            right_tex_position = -task.time * self.current_stimulus['velocity'][1]
+            left_tex_position = -task.time * self.current_stimulus['velocity'][0] * 2  # negative b/c texture stage
+            right_tex_position = -task.time * self.current_stimulus['velocity'][1] * 2
             try:
                 self.left_card.setTexPos(self.left_texture_stage, left_tex_position, 0, 0)
                 self.right_card.setTexPos(self.right_texture_stage, right_tex_position, 0, 0)
@@ -726,7 +982,7 @@ class ClosedLoopStimChoice(ShowBase):
             if self.current_stimulus['velocity'] == 0:
                 pass
             else:
-                new_position = -task.time*self.current_stimulus['velocity']
+                new_position = -task.time*self.current_stimulus['velocity'] * 2
                 # Sometimes setting position fails when the texture stage isn't fully set
                 try:
                     self.card.setTexPos(self.texture_stage, new_position, 0, 0) #u, v, w
@@ -752,10 +1008,10 @@ class ClosedLoopStimChoice(ShowBase):
             # Continously update the dot stimulus
             #####
             self.dots_position[0, :, 0][self.coherent_change_vector_ind] += \
-                np.cos(self.current_stimulus['angle'] * np.pi / 180) * self.current_stimulus['velocity'] * dt
+                np.cos(self.current_stimulus['angle'] * np.pi / 180) * self.current_stimulus['velocity'] * dt * 2
 
             self.dots_position[0, :, 1][self.coherent_change_vector_ind] += \
-                np.sin(self.current_stimulus['angle'] * np.pi / 180) * self.current_stimulus['velocity'] * dt
+                np.sin(self.current_stimulus['angle'] * np.pi / 180) * self.current_stimulus['velocity'] * dt * 2
 
             # Randomly redraw dot with a short lifetime
             k = np.random.random(10000)

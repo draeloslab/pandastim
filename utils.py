@@ -110,7 +110,7 @@ class Publisher:
         self.port = port
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.PUB)
-        self.socket.bind(r"tcp://127.0.0.1:" + self.port)
+        self.socket.bind(r"tcp://*:" + self.port)
 
     def kill(self):
         self.socket.close()
@@ -121,12 +121,15 @@ class Subscriber:
     Subscriber wrapper class for zmq.
     Default topic is every topic (""). 
     """
-    def __init__(self, port = "1234", topic = ""):
+    def __init__(self, port = "1234", topic = "", ip=None):
         self.port = port
         self.topic = topic
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.SUB)
-        self.socket.connect(r"tcp://127.0.0.1:" + str(self.port))
+        if ip is not None:
+            self.socket.connect(r"tcp://10.122.170.21:" + str(self.port))
+        else:
+            self.socket.connect('tcp://localhost:' + str(self.port))
         self.socket.subscribe(self.topic)
         
     def kill(self):
@@ -163,22 +166,50 @@ class MonitorDataPass(DirectObject.DirectObject):
     """
     this monitor passes the data through to pandas
     """
-    def __init__(self, subscriber):
+    def __init__(self, subscriber, subscriber2=None):
+
         self.sub = subscriber
-
         self.run_thread = threading.Thread(target=self.run)
-
         self.run_thread.daemon = True
         self.run_thread.start()
+
+        if subscriber2 is not None:
+            self.sub2 = subscriber2
+            self.run_thread2 = threading.Thread(target=self.run2)
+            self.run_thread2.daemon = True
+            self.run_thread2.start()
+
+
+
 
     def run(self):
         # this is run on a separate thread so it can sit in a loop waiting to receive messages
         while True:
-            topic = self.sub.socket.recv_string()
-            data = self.sub.socket.recv_pyobj()
-            # print(data)
-            # this is a duplication at the moment, but provides an intermediate processing stage
-            messenger.send('stimulus', [data])
+            try:
+                topic = self.sub.socket.recv_string(flags=zmq.NOBLOCK)
+                data = self.sub.socket.recv_pyobj(flags=zmq.NOBLOCK)
+                # print(data)
+                # this is a duplication at the moment, but provides an intermediate processing stage, may be useful later
+                if 'load' in data:
+                    messenger.send('stimulus_loader', [data])
+                else:
+                    messenger.send('stimulus', [data])
+            except:
+                pass
+
+    def run2(self):
+        # this is run on a separate thread so it can sit in a loop waiting to receive messages
+        while True:
+            try:
+                topic = self.sub2.socket.recv_string(flags=zmq.NOBLOCK)
+                print(topic)
+                data = self.sub2.socket.recv_pyobj(flags=zmq.NOBLOCK)
+                print(data)
+                # print(data)
+                # this is a duplication at the moment, but provides an intermediate processing stage, may be useful later
+                messenger.send('stimulus', [data])
+            except:
+                pass
 
     def kill(self):
         self.run_thread.join()
@@ -219,12 +250,7 @@ class Emitter(DirectObject.DirectObject):
 
 def sequence_runner(df, port="5005"):
     # this runs a dataframe of stimuli for you
-<<<<<<< Updated upstream
     time.sleep(15)
-=======
-    time.sleep(5)
->>>>>>> Stashed changes
-
     _context = zmq.Context()
     _socket = _context.socket(zmq.PUB)
     _socket.bind('tcp://*:' + str(port))
@@ -269,7 +295,6 @@ if __name__ == '__main__':
         time.sleep(4)
         em.kill()
 
-    
     
     
     

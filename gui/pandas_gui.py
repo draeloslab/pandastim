@@ -40,9 +40,8 @@ class PandasController(QtWidgets.QMainWindow):
         self.max_frequency = 200
         self.running = True
 
-        colors = True
         anne = False
-        self.pandas = mp.Process(target=self.spawn_pandas, args=(self.pandas_port, self.max_frequency, colors, anne))
+        self.pandas = mp.Process(target=self.spawn_pandas, args=(self.pandas_port, anne))
         self.pandas.start()
 
         self.wf_freq.setMaximum(self.max_frequency)
@@ -54,12 +53,36 @@ class PandasController(QtWidgets.QMainWindow):
     def update_stimuli(self):
         curr_tab = self.tabs.currentIndex()
         if curr_tab == 0:
+            stim = {'load': 0, 'stim_type': 's', 'angle': self.wf_angle.value(), 'velocity': self.wf_vel.value(),
+                    'stationary_time': self.wf_stat.value(), 'stim_time': self.wf_stim_time.value(),
+                    'frequency': self.wf_freq.value()}
+
+            self._socket.send_string(self.stimulus_topic, zmq.SNDMORE)
+            self._socket.send_pyobj(stim)
+
             stim = {'stim_type': 's', 'angle': self.wf_angle.value(), 'velocity': self.wf_vel.value(),
                     'stationary_time': self.wf_stat.value(), 'stim_time': self.wf_stim_time.value(),
                     'frequency': self.wf_freq.value()}
+
             self._socket.send_string(self.stimulus_topic, zmq.SNDMORE)
             self._socket.send_pyobj(stim)
+
         if curr_tab == 1:
+            stim = {
+                'load' : 0,
+                'stim_type': 'b', 'angle': [self.b_angle_0.value(), self.b_angle_1.value()],
+                'velocity': [self.b_vel_0.value(), self.b_vel_1.value()],
+                'stationary_time': [self.b_stat_0.value(), self.b_stat_1.value()],
+                'stim_time': [self.b_t_0.value(), self.b_t_1.value()],
+                'frequency': [self.b_freq_0.value(), self.b_freq_1.value()],
+                'center_width': self.b_center_width.value(),
+                'center_x': self.ctr_x.value(),
+                'center_y': self.ctr_y.value(),
+                'strip_angle': self.strip_angle.value()
+            }
+            self._socket.send_string(self.stimulus_topic, zmq.SNDMORE)
+            self._socket.send_pyobj(stim)
+
             stim = {
                 'stim_type': 'b', 'angle': [self.b_angle_0.value(), self.b_angle_1.value()],
                 'velocity': [self.b_vel_0.value(), self.b_vel_1.value()],
@@ -95,10 +118,18 @@ class PandasController(QtWidgets.QMainWindow):
                         break
 
                     if self.liveUpdate.isChecked():
+                        stim1 = {'load':0, 'stim_type': 's', 'angle': self.wf_angle.value(), 'velocity': self.wf_vel.value(),
+                                'stationary_time': self.wf_stat.value(), 'stim_time': self.wf_stim_time.value(),
+                                'frequency': self.wf_freq.value()}
+
                         stim = {'stim_type': 's', 'angle': self.wf_angle.value(), 'velocity': self.wf_vel.value(),
                                 'stationary_time': self.wf_stat.value(), 'stim_time': self.wf_stim_time.value(),
                                 'frequency': self.wf_freq.value()}
                         if stim != self.last_sent:
+                            self._socket.send_string(self.stimulus_topic, zmq.SNDMORE)
+                            self._socket.send_pyobj(stim1)
+                            self.last_sent = stim1
+
                             self._socket.send_string(self.stimulus_topic, zmq.SNDMORE)
                             self._socket.send_pyobj(stim)
                             self.last_sent = stim
@@ -116,6 +147,19 @@ class PandasController(QtWidgets.QMainWindow):
                         break
 
                     if self.liveUpdate.isChecked():
+                        stim1 = {
+                            'load': 0,
+                            'stim_type': 'b', 'angle': [self.b_angle_0.value(), self.b_angle_1.value()],
+                            'velocity': [self.b_vel_0.value(), self.b_vel_1.value()],
+                            'stationary_time': [self.b_stat_0.value(), self.b_stat_1.value()],
+                            'stim_time': [self.b_t_0.value(), self.b_t_1.value()],
+                            'frequency': [self.b_freq_0.value(), self.b_freq_1.value()],
+                            'center_width': self.b_center_width.value(),
+                            'center_x': self.ctr_x.value(),
+                            'center_y': self.ctr_y.value(),
+                            'strip_angle': self.strip_angle.value()
+                        }
+
                         stim = {
                             'stim_type': 'b', 'angle': [self.b_angle_0.value(), self.b_angle_1.value()],
                             'velocity': [self.b_vel_0.value(), self.b_vel_1.value()],
@@ -128,6 +172,10 @@ class PandasController(QtWidgets.QMainWindow):
                             'strip_angle': self.strip_angle.value()
                         }
                         if stim != self.last_sent:
+                            self._socket.send_string(self.stimulus_topic, zmq.SNDMORE)
+                            self._socket.send_pyobj(stim1)
+                            self.last_sent = stim1
+
                             self._socket.send_string(self.stimulus_topic, zmq.SNDMORE)
                             self._socket.send_pyobj(stim)
                             self.last_sent = stim
@@ -147,8 +195,13 @@ class PandasController(QtWidgets.QMainWindow):
         self.close()
 
     @staticmethod
-    def spawn_pandas(port=5005, freq_max=101, colors=True, anne=True):
+    def spawn_pandas(port=5005, anne=True):
+        '''
         tex_size = (1024, 1024)
+
+        freq_max=101, colors=True,
+
+
         freqs = np.arange(freq_max)
 
         input_textures = {'freq': {},'light_val':{},'dark_val':{}, 'blank': textures.BlankTexXY(texture_size=tex_size)}
@@ -180,11 +233,11 @@ class PandasController(QtWidgets.QMainWindow):
         else:
             for f in freqs:
                 input_textures['freq'][f] = textures.GratingGrayTexXY(texture_size=tex_size, spatial_frequency=f)
+        '''
 
+        sve_pth = datetime.now().strftime("%d.%m.%Y__%H.%M.%S") + '_stims.txt'
 
-        sve_pth = r'C:\Soft_Kitty\Anaconda3\envs\clean_pstim\Lib\site-packages\pandastim\saves/' + '_stims.txt'
-
-        stimulation = stimuli.ClosedLoopStimChoice(input_textures=input_textures, gui=True, debug=True,
+        stimulation = stimuli.ClosedLoopStimChoice(gui=True, live_update=True, debug=True,
                                                    publisher_port=5008, save_path=sve_pth)
 
         sub = utils.Subscriber(topic="stim", port=port)

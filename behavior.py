@@ -58,8 +58,9 @@ class TimeUpdater(Stimulus):
     # connects to stytra to get the internal experiment parameters from stytra
     def initialise_external(self, experiment):
         super().initialise_external(experiment)
+        print()
         try:
-            stims_socket = self._experiment.estimator.matt_go_socket()
+            stims_socket = self._experiment.go_socket
             sending_context = zmq.Context()
             self.go = sending_context.socket(zmq.REQ)
             self.go.connect('tcp://localhost:' + str(stims_socket))
@@ -67,7 +68,7 @@ class TimeUpdater(Stimulus):
             pass
 
         try:
-            time_socket = self._experiment.estimator.matt_timing_socket()
+            time_socket = self._experiment.timing_socket
             context = zmq.Context()
             self.timing = context.socket(zmq.SUB)
             self.timing.setsockopt(zmq.SUBSCRIBE, b'time')
@@ -76,6 +77,7 @@ class TimeUpdater(Stimulus):
             pass
 
     def update(self):
+
         # if condition met, update duration
         if self.external_starter == 0:
             self.go.send_string('True')
@@ -263,3 +265,5 @@ def stytra_container(image_socket=5558, go_button_socket=5559, time_socket=6000,
     app.exec_()
     stimWindowCloser.join()
 
+if __name__ == '__main__':
+    stytra_container()

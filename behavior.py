@@ -20,10 +20,13 @@ from stytra.stimulation.stimuli import Stimulus
 from stytra.experiments.tracking_experiments import TrackingExperiment
 from stytra.gui.container_windows import TrackingExperimentWindow
 from stytra.gui.camera_display import CameraViewWidget
+from stytra.gui.buttons import IconButton
+from stytra.gui.multiscope import MultiStreamPlot
 from stytra import Protocol
 
-from PyQt5.QtWidgets import QToolButton
-from PyQt5.QtWidgets import QApplication
+from lightparam.gui import ControlCombo
+
+from PyQt5.QtWidgets import QToolButton, QApplication, QWidget, QVBoxLayout
 from PyQt5.QtGui import  QIcon
 from PyQt5.QtCore import QSize
 
@@ -172,6 +175,42 @@ class ExternalTrackingExperimentWindow(TrackingExperimentWindow):
 
         self.camera_display = ExternalCameraDisplay(experiment=kwargs["experiment"])
 
+        self.monitoring_widget = QWidget()
+        self.monitoring_layout = QVBoxLayout()
+        self.monitoring_widget.setLayout(self.monitoring_layout)
+
+        self.stream_plot = MultiStreamPlot(experiment=self.experiment)
+
+        self.monitoring_layout.addWidget(self.stream_plot)
+
+        self.extra_widget = (self.experiment.pipeline.extra_widget(
+            self.experiment.acc_tracking)
+                             if self.experiment.pipeline.extra_widget is not None
+                             else None)
+
+        # Display dropdown
+        self.drop_display = ControlCombo(
+            self.experiment.pipeline.all_params["diagnostics"],
+        "image")
+
+        if hasattr(self.camera_display, "set_pos_from_tree"):
+            self.drop_display.control.currentTextChanged.connect(
+                self.camera_display.set_pos_from_tree)
+
+        # Tracking params button:
+        self.button_tracking_params = IconButton(
+            icon_name="edit_tracking", action_name="Change tracking parameters"
+        )
+        self.button_tracking_params.clicked.connect(self.open_tracking_params_tree)
+
+        self.camera_display.layout_control.addStretch(10)
+        self.camera_display.layout_control.addWidget(self.drop_display)
+        self.camera_display.layout_control.addWidget(self.button_tracking_params)
+
+        self.track_params_wnd = None
+
+        self.status_display.addMessageQueue(self.experiment.frame_dispatcher.message_queue)
+
 
 class ExternalTrackingExperiment(TrackingExperiment):
     def __init__(self,
@@ -264,6 +303,7 @@ def stytra_container(image_socket=5558, go_button_socket=5559, time_socket=6000,
     exp.start_experiment()
     app.exec_()
     stimWindowCloser.join()
+
 
 if __name__ == '__main__':
     stytra_container()

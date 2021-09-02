@@ -16,6 +16,7 @@ from direct.showbase.MessengerGlobal import messenger
 from scipy import signal
 from datetime import datetime as dt
 
+
 def port_provider():
     """
     returns a random free port on PC
@@ -26,7 +27,8 @@ def port_provider():
     c.destroy()
     return rand_port
 
-def updated_saving(file_path, fish_id, fish_age):
+
+def updated_saving(file_path, fish_id=None, fish_age=None):
     """
     Initializes saving: saves texture classes and params for
     input-coupled stimulus classes.

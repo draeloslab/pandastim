@@ -1,8 +1,0 @@
-*.docx
-*~*
-todo.txt
-/__pycache__
-*dropbox*
-/examples/data/
-desktop.ini
-.cph*

@@ -1,5 +1,5 @@
 '''
-this setup uses an adaptation to the stytra package  to run behavioral experiments:
+this setup uses the stytra package for fish tracking:
 
 https://github.com/portugueslab/stytra
 
@@ -330,14 +330,6 @@ def stytra_container(image_socket=5558, go_button_socket=5559, time_socket=6000,
     exp.start_experiment()
     app.exec_()
     stimWindowCloser.join()
-
-
-# stuff for calibration
-class CalibrationException(Exception):
-    """
-    Blob detection for calibration failed
-    """
-    pass
 
 
 if __name__ == '__main__':

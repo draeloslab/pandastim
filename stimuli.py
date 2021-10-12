@@ -1447,6 +1447,8 @@ class StimulusSequencing(ShowBase):
         self.window_props = WindowProperties()
         self.format_window()
 
+        self.curr_id = 0
+
         if save_path:
             self.filestream = utils.updated_saving(save_path)
         else:
@@ -1737,6 +1739,13 @@ class StimulusSequencing(ShowBase):
         translate = TransformState.make_pos2d((0.5, 0.5))
         return translate.compose(rotate.compose(scale.compose(center_shift)))
 
+    def save(self):
+        if self.filestream:
+            saved_stim = dict(self.current_stimulus.copy())
+            self.filestream.write("\n")
+            self.filestream.write(f"{str(datetime.now())}: {self.curr_id} {saved_stim}")
+            self.filestream.flush()
+
     @staticmethod
     def grating_key_creator(stimulus, defaults):
         try:
@@ -1769,9 +1778,15 @@ class StimulusSequencing(ShowBase):
 
 class OpenLoopStimulus(StimulusSequencing):
     def __init__(self, stimuli, *args, **kwargs):
+        '''
+        An open-loop implementation that expects to be fed a sequence of stimuli
+
+        :param stimuli: generally a dataframe with stimuli in expected order
+        :param args/kwargs: generally different default parameters & a save path
+        '''
+
         super().__init__(stimuli, *args, **kwargs)
 
-        self.curr_id = 0
         self.current_stimulus = self.stimuli.loc[self.curr_id]
         self.set_stimulus()
 
@@ -1783,6 +1798,8 @@ class OpenLoopStimulus(StimulusSequencing):
             self.current_stimulus = self.stimuli.loc[self.curr_id]
         except KeyError:
             sys.exit()
+
+        self.save()
         self.set_stimulus()
 
 
@@ -1804,6 +1821,7 @@ class MonocularImprov(StimulusSequencing):
         self.accept("stimulus_loader", self.create_next_texture, [])
 
     def update_stimulus(self, new_stimulus):
+        self.curr_id += 1
         grating_key, grating_params = self.grating_key_creator(new_stimulus, self.default_params)
         try:
             texture = self.textures[grating_key]
@@ -1828,13 +1846,13 @@ class MonocularImprov(StimulusSequencing):
                 msg = f'created texture {grating_key}'
                 logging.info(msg)
 
-        # LEGACY SOCKET MESSAGE
+        # LEGACY IMPROV MESSAGE
         sent_message = 'loaded'
         if self.last_sent_message != sent_message:
             self.publisher.socket.send_pyobj(f"stimid {str(datetime.now())} loaded: {data}")
             self.last_sent_message = sent_message
 
-    # same as base class except includes messages out, also doesnt go to gray, just stops moving same tex
+    # same core as base class: includes messages out and texture permanence
     def move_monocular(self, monocular_move_task):
         if 'stationary_time' not in self.current_stimulus:
             self.current_stimulus['stationary_time'] = 0

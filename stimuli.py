@@ -1797,6 +1797,8 @@ class MonocularImprov(StimulusSequencing):
         self.default_grating_key = '255_0_32'
         self.textures[self.default_grating_key] = self.grating_creator([255, 0, 32, self.default_params['window_size']])
 
+        self.last_sent_message = None
+
         # accept external messages to do the things and such
         self.accept("stimulus", self.update_stimulus, [])
         self.accept("stimulus_loader", self.create_next_texture, [])
@@ -1810,17 +1812,14 @@ class MonocularImprov(StimulusSequencing):
             texture = self.textures[self.default_grating_key]
         new_stimulus['texture_0'] = texture
         self.current_stimulus = new_stimulus
+        self.clear_cards()
         self.set_stimulus()
 
     def create_next_texture(self, data):
         grating_key, grating_params = self.grating_key_creator(data, self.default_params)
         if grating_key in self.textures:
-
             msg = f"texture {grating_key} exists, passing"
             logging.info(msg)
-            self.publisher.socket.send_pyobj([datetime.now(), msg])
-
-            return
         else:
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 future = executor.submit(self.grating_creator, grating_params)
@@ -1828,8 +1827,41 @@ class MonocularImprov(StimulusSequencing):
                 self.textures[grating_key] = tex
                 msg = f'created texture {grating_key}'
                 logging.info(msg)
-                self.publisher.socket.send_pyobj([datetime.now(), msg])
-            return
+
+        # LEGACY SOCKET MESSAGE
+        sent_message = 'loaded'
+        if self.last_sent_message != sent_message:
+            self.publisher.socket.send_pyobj(f"stimid {str(datetime.now())} loaded: {data}")
+            self.last_sent_message = sent_message
+
+    # same as base class except includes messages out, also doesnt go to gray, just stops moving same tex
+    def move_monocular(self, monocular_move_task):
+        if 'stationary_time' not in self.current_stimulus:
+            self.current_stimulus['stationary_time'] = 0
+
+        # INCLUDE LEGACY SOCKET MESSAGE
+        if monocular_move_task.time <= self.current_stimulus['stationary_time']:
+            sent_message = 'stationary'
+            if self.last_sent_message != sent_message:
+                self.publisher.socket.send_pyobj(f"stimid {str(datetime.now())} stationary: {self.current_stimulus}")
+                self.last_sent_message = sent_message
+        elif 'duration' in self.current_stimulus and monocular_move_task.time >= self.current_stimulus['duration']:
+            # self.clear_cards()
+            return monocular_move_task.done
+        else:
+            new_position = -monocular_move_task.time*self.current_stimulus['velocity'] * 2
+            try:
+                self.card.setTexPos(self.texture_stage, new_position, 0, 0) #u, v, w
+
+                sent_message = 'moving'
+                if self.last_sent_message != sent_message:
+                    self.publisher.socket.send_pyobj(f"stimid {str(datetime.now())} moving: {self.current_stimulus}")
+                    self.last_sent_message = sent_message
+
+            except Exception as e:
+                print(e, 'error on move_monocular')
+
+        return monocular_move_task.cont
 
 
 class KeyboardToggleTex(ShowBase):

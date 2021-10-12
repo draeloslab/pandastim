@@ -71,7 +71,7 @@ class TexMoving(ShowBase):
         Positive angles are clockwise, negative ccw.
         Velocity is normalized to window size, so 1.0 is the entire window width (i.e., super-fast).
     """
-    def __init__(self, tex, angle = 0, velocity = 0.1, fps = 30,
+    def __init__(self, tex, angle = 0, velocity = 0.1, fps = 90,
                  window_name = "ShowTexMoving", window_size = None, profile_on = False):
         super().__init__()
         self.tex = tex
@@ -117,12 +117,24 @@ class TexMoving(ShowBase):
         if self.velocity != 0:
             #Add task to taskmgr to translate texture
             self.taskMgr.add(self.moveTextureTask, "moveTextureTask")
-        
+        # self.taskMgr.add(self.takePictures, 'pictureTakingTask')
+
     #Task for moving the texture
     def moveTextureTask(self, task):
         new_position = -task.time*self.velocity
         self.card.setTexPos(self.texture_stage, new_position, 0, 0) #u, v, w
         return Task.cont
+
+    # def takePictures(self, picTask):
+    #     regionDisplayed = self.camNode.getDisplayRegion(0)
+    #     regionScreenShot = regionDisplayed.getScreenshot()
+    #     regionRamImage = regionScreenShot.getRamImage()
+    #     v = memoryview(regionRamImage).tolist()
+    #     img = np.array(v, dtype=np.uint8)
+    #     img = img.reshape((regionRamImage.getYSize(), regionRamImage.getXSize(), 4))
+    #     img = img[::-1]
+    #     np.save(f'image_{time.time()}_.   npy', img)
+    #     return picTask.cont
     
                 
 class TexFixed(TexMoving):

@@ -4,10 +4,6 @@ import pandas as pd
 pd.options.mode.chained_assignment = None
 
 from pandastim import textures, stimuli
-import logging
-
-
-
 
 # this loads in your default parameters
 p = r'C:\Users\matt_analysis\Documents\def_pstim_params.txt'
@@ -22,7 +18,7 @@ left = {'stim_type' : 's', 'velocity' : 0.02,'angle' : 270, 'duration' : 5, 'tex
 stims = pd.DataFrame([fwd, right, left]*3)
 
 
-# openLoop = stimuli.OpenLoopStimulus(stimuli=stims, defaults=pstim_params)
+openLoop = stimuli.OpenLoopStimulus(stimuli=stims, defaults=pstim_params, save_path='text.txt')
 
-openLoop = stimuli.MonocularImprov(input_port=5009)
+# openLoop = stimuli.MonocularImprov(input_port=5009, save_path='test.txt')
 openLoop.run()

@@ -31,7 +31,7 @@ from datetime import datetime
 # Set up a logger
 log_level = logging.INFO
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG) #because annoying reasons
+logger.setLevel(log_level) #because annoying reasons
 if not logger.hasHandlers():
     log_handler = logging.StreamHandler(sys.stdout)
     log_handler.setLevel(log_level)
@@ -1437,7 +1437,7 @@ class StimulusSequencing(ShowBase):
         self.textures = {}
 
         # if we got textures, add them to the dic
-        if 'texture' in self.stimuli.columns:
+        if self.stimuli is not None and 'texture' in self.stimuli.columns:
             self.extract_texture_from_df()
 
         if defaults is None:
@@ -1513,7 +1513,6 @@ class StimulusSequencing(ShowBase):
             self.run_random_dots()
 
     def set_monocular(self):
-
         cardmaker = CardMaker("stimcard")
         cardmaker.setFrameFullscreenQuad()
 
@@ -1524,14 +1523,14 @@ class StimulusSequencing(ShowBase):
         self.card = self.aspect2d.attachNewNode(cardmaker.generate())
         self.card.setScale(self.scale)
         self.card.setColor((1, 1, 1, 1))
-
+        if isinstance(self.current_stimulus['texture_0'], str):
+            self.current_stimulus['texture_0'] = self.textures[self.current_stimulus['texture_0']]
         # set tex
-        self.card.setTexture(self.texture_stage, self.textures[self.current_stimulus['texture_0']].texture)
+        self.card.setTexture(self.texture_stage, self.current_stimulus['texture_0'].texture)
 
         # set tex transforms
         self.card.setTexRotate(self.texture_stage, self.current_stimulus['angle'] + self.default_params['rotation_offset'])
         self.card.setTexPos(self.texture_stage,  self.center_x, self.center_y, 0)
-
         self.taskMgr.add(self.move_monocular, "move_monocular")
 
     def set_binocular(self):
@@ -1554,9 +1553,16 @@ class StimulusSequencing(ShowBase):
             self.strip_angle = self.default_params['center_y']
 
         ### CREATE TEXTURE STAGES ###
+        if isinstance(self.current_stimulus['texture_0'], str):
+            tex_1 = self.textures[self.current_stimulus['texture_0']].texture
+        else:
+            tex_1 = self.current_stimulus['texture_0']
 
-        tex_1 = self.textures[self.current_stimulus['texture_0']].texture
-        tex_2 = self.textures[self.current_stimulus['texture_1']].texture
+        if isinstance(self.current_stimulus['texture_1'], str):
+            tex_2 = self.textures[self.current_stimulus['texture_1']].texture
+        else:
+            tex_2 = self.current_stimulus['texture_1']
+
         tex_1_size = self.textures[self.current_stimulus['texture_0']].texture_size
         tex_2_size = self.textures[self.current_stimulus['texture_1']].texture_size
 
@@ -1655,8 +1661,7 @@ class StimulusSequencing(ShowBase):
             try:
                 self.card.setTexPos(self.texture_stage, new_position, 0, 0) #u, v, w
             except Exception as e:
-                print(e)
-                print('error on move_monocular')
+                print(e, 'error on move_monocular')
         return monocular_move_task.cont
 
     def move_binocular(self, binocular_move_task):
@@ -1733,7 +1738,7 @@ class StimulusSequencing(ShowBase):
         return translate.compose(rotate.compose(scale.compose(center_shift)))
 
     @staticmethod
-    def grating_creator(stimulus, defaults):
+    def grating_key_creator(stimulus, defaults):
         try:
             lv = np.int16(stimulus['lightValue'])
         except:
@@ -1746,14 +1751,20 @@ class StimulusSequencing(ShowBase):
             f = np.int16(stimulus['frequency'])
         except :
             f = defaults['frequency']
-        tex = textures.GratingGrayTexXY(
-            texture_size=defaults['window_size'],
-            spatial_frequency=f,
-            dark_val=dv,
-            light_val=lv
-        )
+
         key = f'{lv}_{dv}_{f}'
-        return tex, key
+        return key, [lv, dv, f, defaults['window_size']]
+
+    @staticmethod
+    def grating_creator(grating_params):
+        light_val, dark_val, freq, size = grating_params
+        tex = textures.GratingGrayTexXY(
+            texture_size=size,
+            spatial_frequency=freq,
+            dark_val=dark_val,
+            light_val=light_val
+        )
+        return tex
 
 
 class OpenLoopStimulus(StimulusSequencing):
@@ -1773,6 +1784,52 @@ class OpenLoopStimulus(StimulusSequencing):
         except KeyError:
             sys.exit()
         self.set_stimulus()
+
+
+class MonocularImprov(StimulusSequencing):
+    def __init__(self, input_port, input_ip=None, output_port=5008, *args, **kwargs):
+        super().__init__(None, *args, **kwargs)
+
+        self.subscriber = utils.Subscriber(topic="stim", port=input_port, ip=input_ip)
+        self.monitor = utils.MonitorDataPass(self.subscriber)
+        self.publisher = utils.Publisher(str(output_port))
+
+        self.default_grating_key = '255_0_32'
+        self.textures[self.default_grating_key] = self.grating_creator([255, 0, 32, self.default_params['window_size']])
+
+        # accept external messages to do the things and such
+        self.accept("stimulus", self.update_stimulus, [])
+        self.accept("stimulus_loader", self.create_next_texture, [])
+
+    def update_stimulus(self, new_stimulus):
+        grating_key, grating_params = self.grating_key_creator(new_stimulus, self.default_params)
+        try:
+            texture = self.textures[grating_key]
+        except Exception as e:
+            logging.warning('texture never created, using default')
+            texture = self.textures[self.default_grating_key]
+        new_stimulus['texture_0'] = texture
+        self.current_stimulus = new_stimulus
+        self.set_stimulus()
+
+    def create_next_texture(self, data):
+        grating_key, grating_params = self.grating_key_creator(data, self.default_params)
+        if grating_key in self.textures:
+
+            msg = f"texture {grating_key} exists, passing"
+            logging.info(msg)
+            self.publisher.socket.send_pyobj([datetime.now(), msg])
+
+            return
+        else:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(self.grating_creator, grating_params)
+                tex = future.result()
+                self.textures[grating_key] = tex
+                msg = f'created texture {grating_key}'
+                logging.info(msg)
+                self.publisher.socket.send_pyobj([datetime.now(), msg])
+            return
 
 
 class KeyboardToggleTex(ShowBase):

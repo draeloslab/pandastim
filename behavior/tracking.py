@@ -8,6 +8,8 @@ import zmq
 import time
 import qdarkstyle
 import sys
+import zarr
+import uuid
 
 import numpy as np
 import pygetwindow as gw
@@ -84,6 +86,7 @@ class TimeUpdater(Stimulus):
     def update(self):
 
         # if condition met, update duration
+        # this only runs the first time
         if self.external_starter == 0:
             self.go.send_string('True')
             self.external_starter = 1
@@ -102,9 +105,13 @@ class TimeUpdater(Stimulus):
         except zmq.Again:
             pass
 
+        data = np.array(self._experiment.estimator.get_position())
+        self._experiment.pstim_pub.socket.send_string('stim')
+        self._experiment.pstim_pub.socket.send_pyobj(data)
+
         # only update every 50 loop runs, this runs at ~30-40 Hz, hurts performance to do more often
         self.iterator += 1
-        if self.iterator > 50:
+        if self.iterator > 100:
             time_correction = self._elapsed - self.exp_elapsed - self.timing_offset
 
             if time_correction <= 0:
@@ -256,22 +263,8 @@ class ExternalTrackingExperiment(TrackingExperiment):
 
         self.automated = automated
 
-        self.streaming_on = True
-
         super().__init__(*args, **kwargs)
 
-        self.streaming = tr.Thread(target=self.stream_data)
-        self.streaming.start()
-
-    def stream_data(self):
-        while self.streaming_on:
-            pass
-            # data = self.estimator.get_position()
-            # print(self.estimator.past_values)
-            # if data != self.estimator.past_values[0]:
-            #     x, y, theta = data
-            #     self.pstim_pub.socket.send_string('fish', zmq.SNDMORE)
-            #     self.pstim_pub.socket.send_pyobj([x, y, theta])
 
     def get_image(self):
         return self.frame_dispatcher[0]
@@ -280,19 +273,7 @@ class ExternalTrackingExperiment(TrackingExperiment):
         return self.image_socket
 
     def end_protocol(self, save=True):
-        self.streaming_on = False
-        self.streaming.join()
         super().end_protocol()
-        # try:
-        #     # a ZMQ socket to send out that we've finished up here
-        #     sending_context = zmq.Context()
-        #     self.ending_socket = sending_context.socket(zmq.REQ)
-        #     self.ending_socket.connect('tcp://localhost:' + str(self.saving_socket))
-        #     self.ending_socket.send_string('True')
-        #     self.ending_socket.recv_string()
-        #     self.ending_socket.close()
-        # except:
-        #     pass
 
     def make_window(self):
         self.window_main = ExternalTrackingExperimentWindow(experiment=self)
@@ -354,4 +335,4 @@ if __name__ == '__main__':
     for key in keys:
         _ports[key] = port_provider()
 
-    stytra_container(ports=_ports)
+    stytra_container(ports=_ports, savedir=r'D:\testingdata')

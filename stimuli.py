@@ -39,8 +39,8 @@ if not logger.hasHandlers():
 
 # default pandastim parameters
 default_params = {
-    'light_value' : 0,
-    'dark_value' : 255,
+    'light_value' : 255,
+    'dark_value' : 0,
     'frequency' : 32,
     'center_width' : 16,
     'strip_angle' : 0,
@@ -563,7 +563,7 @@ class ClosedLoopStimChoice(ShowBase):
 
     stimuli contains possible stim choices
     """
-    def __init__(self, input_textures=None, def_freq=32, def_center_width=16, scale=8, fps=120, rot_offset=-90, save_path=None,
+    def __init__(self, input_textures=None, def_freq=32, def_center_width=16, scale=8, fps=60, rot_offset=-90, save_path=None,
                  window_size=None, win_pos=(2400, 1080//4),window_name='Pandastim', live_update=True, debug=False,
                  fish_id=None, fish_age=None, profile_on=False, gui=False, publisher_port=5009):
 
@@ -1448,13 +1448,16 @@ class StimulusSequencing(ShowBase):
         self.stimuli = stimuli
         self.textures = {}
 
-        # if we got textures, add them to the dic
-        if self.stimuli is not None and 'texture' in self.stimuli.columns:
-            self.extract_texture_from_df()
-
         if defaults is None:
             defaults = default_params
         self.default_params = defaults
+
+        # if we got textures, add them to the dic
+        if self.stimuli is not None and 'texture' in self.stimuli.columns:
+            self.extract_texture_from_df()
+        self.default_grating_key = '255_0_32'
+        if self.default_grating_key not in self.textures:
+            self.textures[self.default_grating_key] = self.grating_creator([255, 0, 32, self.default_params['window_size']])
 
         self.window_props = WindowProperties()
         self.format_window()
@@ -1523,8 +1526,6 @@ class StimulusSequencing(ShowBase):
             self.set_monocular()
         elif self.current_stimulus['stim_type'] == 'b':
             self.set_binocular()
-        elif self.current_stimulus['stim_type'] == 'rdk':
-            self.run_random_dots()
 
     def set_monocular(self):
         cardmaker = CardMaker("stimcard")
@@ -1568,17 +1569,17 @@ class StimulusSequencing(ShowBase):
 
         ### CREATE TEXTURE STAGES ###
         if isinstance(self.current_stimulus['texture_0'], str):
-            tex_1 = self.textures[self.current_stimulus['texture_0']].texture
+            tex_1 = self.textures[self.current_stimulus['texture_0']]
         else:
             tex_1 = self.current_stimulus['texture_0']
 
         if isinstance(self.current_stimulus['texture_1'], str):
-            tex_2 = self.textures[self.current_stimulus['texture_1']].texture
+            tex_2 = self.textures[self.current_stimulus['texture_1']]
         else:
             tex_2 = self.current_stimulus['texture_1']
 
-        tex_1_size = self.textures[self.current_stimulus['texture_0']].texture_size
-        tex_2_size = self.textures[self.current_stimulus['texture_1']].texture_size
+        tex_1_size = tex_1.texture_size
+        tex_2_size = tex_2.texture_size
 
         self.left_texture_stage = TextureStage('left_texture_stage')
         self.left_mask = Texture("left_mask_texture")
@@ -1597,7 +1598,6 @@ class StimulusSequencing(ShowBase):
         self.right_mask_stage = TextureStage('right_mask_stage')
 
         ## CREATE CARDS ###
-
         cardmaker = CardMaker("stimcard")
         cardmaker.setFrameFullscreenQuad()
 
@@ -1622,7 +1622,8 @@ class StimulusSequencing(ShowBase):
 
         # ADD TEXTURE STAGES TO CARDS
         self.left_mask.setRamImage(self.left_mask_array)
-        self.left_card.setTexture(self.left_texture_stage, tex_1)
+        self.left_card.setTexture(self.left_texture_stage, tex_1.texture)
+
         self.left_card.setTexture(self.left_mask_stage, self.left_mask)
 
         # Multiply the texture stages together
@@ -1632,7 +1633,7 @@ class StimulusSequencing(ShowBase):
                                            TextureStage.CSPrevious,
                                            TextureStage.COSrcColor)
         self.right_mask.setRamImage(self.right_mask_array)
-        self.right_card.setTexture(self.right_texture_stage, tex_2)
+        self.right_card.setTexture(self.right_texture_stage, tex_2.texture)
         self.right_card.setTexture(self.right_mask_stage, self.right_mask)
 
         # Multiply the texture stages together
@@ -1759,22 +1760,35 @@ class StimulusSequencing(ShowBase):
             self.filestream.flush()
 
     @staticmethod
-    def grating_key_creator(stimulus, defaults):
+    def grating_key_creator(stimulus, defaults, b=False):
         try:
             lv = np.int16(stimulus['lightValue'])
         except:
-            lv = defaults['light_value']
+            lv = np.int16(defaults['light_value'])
         try:
             dv = np.int16(stimulus['darkValue'])
         except:
-            dv = defaults['dark_value']
+            dv = np.int16(defaults['dark_value'])
         try:
             f = np.int16(stimulus['frequency'])
         except :
-            f = defaults['frequency']
+            f = np.int16(defaults['frequency'])
 
-        key = f'{lv}_{dv}_{f}'
-        return key, [lv, dv, f, defaults['window_size']]
+        if isinstance(lv, np.int16) and not b:
+            key = f'{lv}_{dv}_{f}'
+            return key, [lv, dv, f, defaults['window_size']]
+        else:
+            # handle the binocular case
+            if not isinstance(lv, np.int16):
+                pass
+            else:
+                lv = [lv, lv]
+                dv = [dv, dv]
+                f = [f, f]
+            keys = [f'{lv[i]}_{dv[i]}_{f[i]}' for i in range(len(lv))]
+            params = [[lv[i], dv[i], f[i], defaults['window_size']] for i in range(len(lv))]
+            return keys, params
+
 
     @staticmethod
     def grating_creator(grating_params):
@@ -1822,9 +1836,6 @@ class MonocularImprov(StimulusSequencing):
         self.subscriber = utils.Subscriber(topic="stim", port=input_port, ip=input_ip)
         self.monitor = utils.MonitorDataPass(self.subscriber)
         self.publisher = utils.Publisher(str(output_port))
-
-        self.default_grating_key = '255_0_32'
-        self.textures[self.default_grating_key] = self.grating_creator([255, 0, 32, self.default_params['window_size']])
 
         self.last_sent_message = None
 
@@ -1892,6 +1903,65 @@ class MonocularImprov(StimulusSequencing):
                 print(e, 'error on move_monocular')
 
         return monocular_move_task.cont
+
+
+class BehavioralStimuli(StimulusSequencing):
+    def __init__(self, stimuli, input_port, *args, **kwargs):
+        super().__init__(stimuli, *args, **kwargs)
+
+        self.textures['centering_dot'] = textures.CircleGrayTex(circle_radius=self.default_params['center_dot_size'], texture_size=self.default_params['window_size'][0])
+
+        self.subscriber = utils.Subscriber(topic="stim", port=input_port)
+        self.monitor = utils.MonitorDataPass(self.subscriber)
+
+        self.accept("stimulus", self.change_stimulus, [])
+        self.accept("stimulus_update", self.update_stimulus, [])
+
+    def update_stimulus(self):
+        pass
+
+    def change_stimulus(self, new_stimulus):
+        self.curr_id, self.current_stimulus = new_stimulus
+        self.clear_cards()
+        self.set_stimulus()
+
+    def set_stimulus(self):
+        if self.current_stimulus is None:
+            pass
+        elif self.current_stimulus['stim_type'] == 's':
+            if 'texture' in self.current_stimulus:
+                self.current_stimulus['texture_0'] = self.current_stimulus['texture']
+            else:
+                _key, _params = self.grating_key_creator(self.current_stimulus, self.default_params)
+                if _key not in self.textures:
+                    self.textures[_key] = self.grating_creator(_params)
+                self.current_stimulus['texture_0'] = self.textures[_key]
+
+            self.set_monocular()
+        elif self.current_stimulus['stim_type'] == 'b':
+            if 'texture' in self.current_stimulus:
+                self.current_stimulus['texture_0'] = self.current_stimulus['texture'][0]
+                self.current_stimulus['texture_1'] = self.current_stimulus['texture'][1]
+            else:
+                keys, params = self.grating_key_creator(self.current_stimulus, self.default_params, True)
+                for n in range(len(keys)):
+                    if keys[n] not in self.textures:
+                        self.textures[keys[n]] = self.grating_creator(params[n])
+                self.current_stimulus['texture_0'] = self.textures[keys[0]]
+                self.current_stimulus['texture_1'] = self.textures[keys[1]]
+
+            self.set_binocular()
+        elif self.current_stimulus['stim_type'] == 'centering':
+            self.run_centering()
+
+    def run_centering(self):
+        if self.current_stimulus['type'] == 'radial':
+            # probably a zarr of the radial, take a slice at a time
+            pass
+        else:
+            ## do the static circle
+            self.current_stimulus = {'texture_0' : self.textures['centering_dot'], 'velocity' : 0, 'angle' : 0}
+            self.set_monocular()
 
 
 class KeyboardToggleTex(ShowBase):

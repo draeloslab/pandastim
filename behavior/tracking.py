@@ -30,6 +30,8 @@ from PyQt5.QtWidgets import QToolButton, QApplication, QWidget, QVBoxLayout
 from PyQt5.QtGui import  QIcon
 from PyQt5.QtCore import QSize
 
+from pandastim.utils import Publisher, port_provider
+
 
 # stuff to run a stytra window and communicate with pandas
 class TimeUpdater(Stimulus):
@@ -62,7 +64,6 @@ class TimeUpdater(Stimulus):
     # connects to stytra to get the internal experiment parameters from stytra
     def initialise_external(self, experiment):
         super().initialise_external(experiment)
-        print()
         try:
             stims_socket = self._experiment.go_socket
             sending_context = zmq.Context()
@@ -240,26 +241,37 @@ class ExternalTrackingExperimentWindow(TrackingExperimentWindow):
 
 
 class ExternalTrackingExperiment(TrackingExperiment):
-    def __init__(self,
-                 image_socket=None,
-                 go_socket=None,
-                 timing_socket=None,
-                 saving_socket=None,
-                 automated=False,
+    def __init__(self, ports, automated=False,
                  *args,
                  **kwargs
                  ):
 
         self.need_image = False
 
-        self.image_socket = image_socket
-        self.go_socket = go_socket
-        self.timing_socket = timing_socket
-        self.saving_socket = saving_socket
+        self.image_socket = ports['image_socket']
+        self.go_socket = ports['go_socket']
+        self.timing_socket = ports['timing_socket']
+        self.saving_socket = ports['saving_socket']
+        self.pstim_pub = Publisher(str(ports['tracking_socket']))
 
         self.automated = automated
 
+        self.streaming_on = True
+
         super().__init__(*args, **kwargs)
+
+        self.streaming = tr.Thread(target=self.stream_data)
+        self.streaming.start()
+
+    def stream_data(self):
+        while self.streaming_on:
+            pass
+            # data = self.estimator.get_position()
+            # print(self.estimator.past_values)
+            # if data != self.estimator.past_values[0]:
+            #     x, y, theta = data
+            #     self.pstim_pub.socket.send_string('fish', zmq.SNDMORE)
+            #     self.pstim_pub.socket.send_pyobj([x, y, theta])
 
     def get_image(self):
         return self.frame_dispatcher[0]
@@ -267,18 +279,20 @@ class ExternalTrackingExperiment(TrackingExperiment):
     def return_image_socket(self):
         return self.image_socket
 
-    def end_protocol(self):
+    def end_protocol(self, save=True):
+        self.streaming_on = False
+        self.streaming.join()
         super().end_protocol()
-        try:
-            # a ZMQ socket to send out that we've finished up here
-            sending_context = zmq.Context()
-            self.ending_socket = sending_context.socket(zmq.REQ)
-            self.ending_socket.connect('tcp://localhost:' + str(self.saving_socket))
-            self.ending_socket.send_string('True')
-            self.ending_socket.recv_string()
-            self.ending_socket.close()
-        except:
-            pass
+        # try:
+        #     # a ZMQ socket to send out that we've finished up here
+        #     sending_context = zmq.Context()
+        #     self.ending_socket = sending_context.socket(zmq.REQ)
+        #     self.ending_socket.connect('tcp://localhost:' + str(self.saving_socket))
+        #     self.ending_socket.send_string('True')
+        #     self.ending_socket.recv_string()
+        #     self.ending_socket.close()
+        # except:
+        #     pass
 
     def make_window(self):
         self.window_main = ExternalTrackingExperimentWindow(experiment=self)
@@ -291,7 +305,7 @@ class ExternalTrackingExperiment(TrackingExperiment):
             self.start_protocol()
 
 
-def stytra_container(image_socket=5558, go_button_socket=5559, time_socket=6000, camera_rot=-2, roi=None, savedir=None):
+def stytra_container(ports, camera_rot=-2, roi=None, savedir=None):
     """
     package the stytra classes together and run as a pyqt application
 
@@ -312,6 +326,8 @@ def stytra_container(image_socket=5558, go_button_socket=5559, time_socket=6000,
         this is kinda janky - stytra auto opens a stimulus window, so we grab it and close it
 
         should be an easier way to just not open it ?
+
+        we are running a stim to handle the time tho
         """
         time.sleep(5)
         gw.getWindowsWithTitle('Stytra stimulus display')[0].close()
@@ -324,8 +340,7 @@ def stytra_container(image_socket=5558, go_button_socket=5559, time_socket=6000,
     protocol = StytraDummy()
     exp = ExternalTrackingExperiment(protocol=protocol, app=app,dir_save=savedir,
                              tracking=dict(method='fish', embedded=False, estimator="position"),
-                             camera=dict(type='spinnaker', min_framerate=155, rotation=camera_rot, roi=roi),
-                             image_socket=image_socket, go_socket=go_button_socket, timing_socket=time_socket
+                             camera=dict(type='spinnaker', min_framerate=155, rotation=camera_rot, roi=roi), ports=ports
                              )
     exp.start_experiment()
     app.exec_()
@@ -333,4 +348,10 @@ def stytra_container(image_socket=5558, go_button_socket=5559, time_socket=6000,
 
 
 if __name__ == '__main__':
-    stytra_container()
+
+    _ports = {}
+    keys = ['image_socket', 'go_socket', 'timing_socket', 'saving_socket', 'tracking_socket']
+    for key in keys:
+        _ports[key] = port_provider()
+
+    stytra_container(ports=_ports)

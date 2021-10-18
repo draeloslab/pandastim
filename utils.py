@@ -190,6 +190,8 @@ class MonitorDataPass(DirectObject.DirectObject):
                 # this is a duplication at the moment, but provides an intermediate processing stage, may be useful later
                 if 'load' in data:
                     messenger.send('stimulus_loader', [data])
+                elif 'live' in data:
+                    messenger.send('stimulus_update', [data])
                 else:
                     messenger.send('stimulus', [data])
             except Exception as e:

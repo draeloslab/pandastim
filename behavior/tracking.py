@@ -106,7 +106,7 @@ class TimeUpdater(Stimulus):
             pass
 
         data = np.array(self._experiment.estimator.get_position())
-        self._experiment.pstim_pub.socket.send_string('stim')
+        self._experiment.pstim_pub.socket.send_string('pos')
         self._experiment.pstim_pub.socket.send_pyobj(data)
 
         # only update every 50 loop runs, this runs at ~30-40 Hz, hurts performance to do more often
@@ -265,7 +265,6 @@ class ExternalTrackingExperiment(TrackingExperiment):
 
         super().__init__(*args, **kwargs)
 
-
     def get_image(self):
         return self.frame_dispatcher[0]
 
@@ -284,6 +283,9 @@ class ExternalTrackingExperiment(TrackingExperiment):
 
         if self.automated:
             self.start_protocol()
+
+    def show_stimulus_screen(self, full_screen=False):
+        pass
 
 
 def stytra_container(ports, camera_rot=-2, roi=None, savedir=None):
@@ -313,8 +315,8 @@ def stytra_container(ports, camera_rot=-2, roi=None, savedir=None):
         time.sleep(5)
         gw.getWindowsWithTitle('Stytra stimulus display')[0].close()
 
-    stimWindowCloser = tr.Thread(target=stimCloser)
-    stimWindowCloser.start()
+    # stimWindowCloser = tr.Thread(target=stimCloser)
+    # stimWindowCloser.start()
 
     app = QApplication([])
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
@@ -325,7 +327,7 @@ def stytra_container(ports, camera_rot=-2, roi=None, savedir=None):
                              )
     exp.start_experiment()
     app.exec_()
-    stimWindowCloser.join()
+    # stimWindowCloser.join()
 
 
 if __name__ == '__main__':

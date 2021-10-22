@@ -1,5 +1,4 @@
-from pandastim import behavior
-
+from working.behavior import Tracking
 
 if __name__ == '__main__':
-    behavior.stytra_container()
+    Tracking.stytra_container()

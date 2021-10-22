@@ -7,12 +7,12 @@ Part of pandastim package: https://github.com/EricThomson/pandastim
 """
 from pandastim import utils, textures
 
+import os
 import sys
 import numpy as np
 import logging
-import threading as tr
-import time
 import zmq
+import json
 
 import concurrent.futures
 
@@ -27,6 +27,7 @@ from panda3d.core import Texture, CardMaker, TextureStage, WindowProperties, Col
     ClockObject, PerspectiveLens, AntialiasAttrib, PStatClient, Shader
 
 from datetime import datetime
+from pathlib import Path
 
 # Set up a logger
 log_level = logging.INFO
@@ -1906,16 +1907,39 @@ class MonocularImprov(StimulusSequencing):
 
 
 class BehavioralStimuli(StimulusSequencing):
-    def __init__(self, stimuli, input_port, *args, **kwargs):
+    def __init__(self, stimuli, *args, **kwargs):
         super().__init__(stimuli, *args, **kwargs)
 
         self.textures['centering_dot'] = textures.CircleGrayTex(circle_radius=self.default_params['center_dot_size'], texture_size=self.default_params['window_size'][0])
 
-        self.subscriber = utils.Subscriber(topic="stim", port=input_port)
-        self.monitor = utils.MonitorDataPass(self.subscriber)
-
         self.accept("stimulus", self.change_stimulus, [])
         self.accept("stimulus_update", self.update_stimulus, [])
+        self.accept("calibration_stimulus", self.calibration_stimulus, [])
+
+    def calibration_stimulus(self, toggle):
+        if toggle is False:
+            self.current_stimulus = None
+            self.clear_cards()
+        else:
+            cali_params = self.get_calibration_params()
+            if cali_params is None:
+                self.textures['calibration'] = textures.CalibrationTriangles()
+            else:
+                self.textures['calibration'] = textures.CalibrationTriangles(tri_size=cali_params['tri_size'],
+                                                                             circle_radius=cali_params['circle_radius'],
+                                                                             x_off = cali_params['x_off'],
+                                                                             y_off = cali_params['y_off'])
+            self.current_stimulus = {'texture_0' : self.textures['calibration'], 'velocity' : 0, 'angle' : 0}
+            self.set_monocular()
+
+    def get_calibration_params(self):
+        param_path = Path(sys.executable).parents[0].joinpath(r'Lib\site-packages\pandastim\resources\caliparams.json')
+        if os.path.exists(param_path):
+            with open(param_path) as json_file:
+                data =  json.load(json_file)
+            return data
+        else:
+            return None
 
     def update_stimulus(self):
         pass

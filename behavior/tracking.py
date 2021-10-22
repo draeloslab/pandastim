@@ -1,19 +1,12 @@
 '''
 this setup uses the stytra package for fish tracking:
-
 https://github.com/portugueslab/stytra
-
 '''
 import zmq
-import time
 import qdarkstyle
 import sys
-import zarr
-import uuid
 
 import numpy as np
-import pygetwindow as gw
-import threading as tr
 
 from pathlib import Path
 
@@ -21,7 +14,8 @@ from pathlib import Path
 from stytra.stimulation.stimuli import Stimulus
 from stytra.experiments.tracking_experiments import TrackingExperiment
 from stytra.gui.container_windows import TrackingExperimentWindow
-from stytra.gui.camera_display import CameraViewWidget
+from stytra.gui.camera_display import CameraViewFish
+from stytra.gui.camera_display import _tail_points_from_coords as tail_points
 from stytra.gui.buttons import IconButton
 from stytra.gui.multiscope import MultiStreamPlot
 from stytra import Protocol
@@ -29,7 +23,7 @@ from stytra import Protocol
 from lightparam.gui import ControlCombo
 
 from PyQt5.QtWidgets import QToolButton, QApplication, QWidget, QVBoxLayout
-from PyQt5.QtGui import  QIcon
+from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QSize
 
 from pandastim.utils import Publisher, port_provider
@@ -127,7 +121,7 @@ class StytraDummy(Protocol):
     """
     name = "dummy"
 
-    def __init__(self,):
+    def __init__(self, ):
         super().__init__()
 
     def get_stim_sequence(self):
@@ -135,7 +129,7 @@ class StytraDummy(Protocol):
 
 
 class LocalIconButton(QToolButton):
-    def __init__(self, icon_name="", action_name="", size=[48, 32],*args, **kwargs):
+    def __init__(self, icon_name="", action_name="", size=[48, 32], *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         prePath = Path(sys.executable).parents[0].joinpath(r'Lib\site-packages\pandastim\resources')
@@ -147,7 +141,7 @@ class LocalIconButton(QToolButton):
         self.setIconSize(QSize(size[0], size[0]))
 
 
-class ExternalCameraDisplay(CameraViewWidget):
+class ExternalCameraDisplay(CameraViewFish):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -169,12 +163,14 @@ class ExternalCameraDisplay(CameraViewWidget):
         self.calibrationStimulus.clicked.connect(self.calibration_stimulus)
         self.layout_control.addWidget(self.calibrationStimulus)
 
+        self.calibration_toggle = 0
+
         image_sock = self.experiment.return_image_socket()
         if image_sock is not None:
             self.centering_socket_number = image_sock
             self.centering_context = zmq.Context()
             self.centering_socket = self.centering_context.socket(zmq.PUB)
-            self.centering_socket.bind(str("tcp://*:")+str(self.centering_socket_number))
+            self.centering_socket.bind(str("tcp://*:") + str(self.centering_socket_number))
 
     def stimulus_calibration(self):
         print('centering')
@@ -187,9 +183,20 @@ class ExternalCameraDisplay(CameraViewWidget):
         self.msg_sender(self.centering_socket, self.image_item.image, topic)
 
     def calibration_stimulus(self):
-        print('calibration_stimulus on')
+        if self.calibration_toggle == 0:
+            self.calibration_toggle = 1
+            status = 'calibration_stimulus_on'
+        elif self.calibration_toggle == 1:
+            self.calibration_toggle = 0
+            status = 'calibration_stimulus_off'
+
         topic = 'calibrationStimulus'
-        self.msg_sender(self.centering_socket, 'calibration_triangles', topic)
+
+        if self.calibration_toggle == 0:
+            self.msg_sender(self.centering_socket, status, topic, image=False)
+
+        if self.calibration_toggle == 1:
+            self.msg_sender(self.centering_socket, status, topic, image=False)
 
     @staticmethod
     def msg_sender(sock, img, string, flags=0, image=True):
@@ -199,15 +206,50 @@ class ExternalCameraDisplay(CameraViewWidget):
             sock.send_json(my_msg, flags | zmq.SNDMORE)
             return sock.send(img, flags)
         else:
-            sock.send_string(flags, zmq.SNDMORE)
+            sock.send_string(string, zmq.SNDMORE)
             sock.send_pyobj([img])
+
+    def retrieve_image(self):
+        super().retrieve_image()
+
+        if (
+            len(self.experiment.acc_tracking.stored_data) == 0
+            or self.current_image is None
+        ):
+            return
+
+        current_data = self.experiment.acc_tracking.values_at_abs_time(
+            self.current_frame_time
+        )
+
+        n_fish = self.tracking_params.n_fish_max
+
+        n_data_per_fish = (
+            len(current_data) - 1
+        ) // n_fish  # the first is time, the last is area
+        n_points_tail = self.tracking_params.n_segments
+        try:
+            retrieved_data = np.array(
+                current_data[:-1]  # the -1 if for the diagnostic area
+            ).reshape(n_fish, n_data_per_fish)
+            valid = np.logical_not(np.all(np.isnan(retrieved_data), 1))
+            self.points_fish.setData(
+                x=retrieved_data[valid, 2], y=retrieved_data[valid, 0]
+            )
+            if n_points_tail:
+                tail_len = (
+                    self.tracking_params.tail_length / self.tracking_params.n_segments
+                )
+                ys, xs = tail_points(retrieved_data, tail_len)
+                self.lines_fish.setData(y=xs, x=ys)
+        except ValueError as e:
+            pass
 
 
 class ExternalTrackingExperimentWindow(TrackingExperimentWindow):
     def __init__(self, *args, **kwargs):
 
-        super().__init__(*args,  **kwargs)
-
+        super().__init__(*args, **kwargs)
         self.camera_display = ExternalCameraDisplay(experiment=kwargs["experiment"])
 
         self.monitoring_widget = QWidget()
@@ -222,11 +264,10 @@ class ExternalTrackingExperimentWindow(TrackingExperimentWindow):
             self.experiment.acc_tracking)
                              if self.experiment.pipeline.extra_widget is not None
                              else None)
-
         # Display dropdown
         self.drop_display = ControlCombo(
             self.experiment.pipeline.all_params["diagnostics"],
-        "image")
+            "image")
 
         if hasattr(self.camera_display, "set_pos_from_tree"):
             self.drop_display.control.currentTextChanged.connect(
@@ -241,7 +282,6 @@ class ExternalTrackingExperimentWindow(TrackingExperimentWindow):
         self.camera_display.layout_control.addStretch(10)
         self.camera_display.layout_control.addWidget(self.drop_display)
         self.camera_display.layout_control.addWidget(self.button_tracking_params)
-
         self.track_params_wnd = None
 
         self.status_display.addMessageQueue(self.experiment.frame_dispatcher.message_queue)
@@ -252,7 +292,6 @@ class ExternalTrackingExperiment(TrackingExperiment):
                  *args,
                  **kwargs
                  ):
-
         self.need_image = False
 
         self.image_socket = ports['image_socket']
@@ -288,12 +327,10 @@ class ExternalTrackingExperiment(TrackingExperiment):
         pass
 
 
-def stytra_container(ports, camera_rot=-2, roi=None, savedir=None):
+def stytra_container(ports, camera_rot=0, roi=None, savedir=None):
     """
     package the stytra classes together and run as a pyqt application
-
     uses ZMQ sockets to communicate around
-
     :param image_socket: for sending raw images for calibration or grabbing XY positions
     :param go_button_socket: links the stytra go button
     :param time_socket: socket for the timing information
@@ -301,33 +338,22 @@ def stytra_container(ports, camera_rot=-2, roi=None, savedir=None):
     :param roi: controls camera field of view
     :param savedir: initializes stytra saving path
     """
+    import warnings
+    warnings.filterwarnings("ignore", category=UserWarning)
+
     if roi is None:
         roi = [0, 0, 1120, 1120]
-
-    def stimCloser():
-        """
-        this is kinda janky - stytra auto opens a stimulus window, so we grab it and close it
-
-        should be an easier way to just not open it ?
-
-        we are running a stim to handle the time tho
-        """
-        time.sleep(5)
-        gw.getWindowsWithTitle('Stytra stimulus display')[0].close()
-
-    # stimWindowCloser = tr.Thread(target=stimCloser)
-    # stimWindowCloser.start()
 
     app = QApplication([])
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     protocol = StytraDummy()
-    exp = ExternalTrackingExperiment(protocol=protocol, app=app,dir_save=savedir,
-                             tracking=dict(method='fish', embedded=False, estimator="position"),
-                             camera=dict(type='spinnaker', min_framerate=155, rotation=camera_rot, roi=roi), ports=ports
-                             )
+    exp = ExternalTrackingExperiment(protocol=protocol, app=app, dir_save=savedir,
+                                     tracking=dict(method='fish', embedded=False, estimator="position"),
+                                     camera=dict(type='spinnaker', min_framerate=155, rotation=camera_rot, roi=roi),
+                                     ports=ports
+                                     )
     exp.start_experiment()
     app.exec_()
-    # stimWindowCloser.join()
 
 
 if __name__ == '__main__':
@@ -337,4 +363,4 @@ if __name__ == '__main__':
     for key in keys:
         _ports[key] = port_provider()
 
-    stytra_container(ports=_ports, savedir=r'D:\testingdata')
+    stytra_container(ports=_ports)

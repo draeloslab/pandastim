@@ -156,7 +156,7 @@ class CenterClickTestingProtocol(BaseProtocol):
     def position_receiver(self):
         while self.experiment_running:
             topic = self.position_comm.socket.recv_string()
-            data = self.position_comm.socket.recv_pyobj()
+            self.data = self.position_comm.socket.recv_pyobj()
             self.show_tracking()
 
     def show_tracking(self):

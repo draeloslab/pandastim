@@ -10,8 +10,6 @@ from pandastim import utils, textures
 import sys
 import numpy as np
 import logging
-import threading as tr
-import time
 import zmq
 
 import concurrent.futures
@@ -21,20 +19,43 @@ from direct.showbase import ShowBaseGlobal  #global vars defined by p3d
 from direct.task import Task
 from direct.gui.OnscreenText import OnscreenText   #for binocular stim
 
+from itertools import chain
+
 from panda3d.core import Texture, CardMaker, TextureStage, WindowProperties, ColorBlendAttrib, TransformState, \
     ClockObject, PerspectiveLens, AntialiasAttrib, PStatClient, Shader
 
 from datetime import datetime
+from pathlib import Path
 
 # Set up a logger
 log_level = logging.INFO
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG) #because annoying reasons
+logger.setLevel(log_level) #because annoying reasons
 if not logger.hasHandlers():
     log_handler = logging.StreamHandler(sys.stdout)
     log_handler.setLevel(log_level)
     logger.addHandler(log_handler)
 
+# default pandastim parameters
+default_params = {
+    'light_value' : 255,
+    'dark_value' : 0,
+    'frequency' : 32,
+    'center_width' : 16,
+    'strip_angle' : 0,
+    'center_x' : 0,
+    'center_y' : 0,
+    'scale' : 8,
+    'rotation_offset' : -90,
+    'window_size' : (1024, 1024),
+    'window_position' : (600, 600),
+    'fps' : 60,
+    'window_undecorated' : True,
+    'window_foreground' : True,
+    'window_title' : 'Pandastim',
+    'profile_on' : False
+
+}
 
 class TexMoving(ShowBase):
     """
@@ -49,7 +70,7 @@ class TexMoving(ShowBase):
         Positive angles are clockwise, negative ccw.
         Velocity is normalized to window size, so 1.0 is the entire window width (i.e., super-fast).
     """
-    def __init__(self, tex, angle = 0, velocity = 0.1, fps = 30,
+    def __init__(self, tex, angle = 0, velocity = 0.1, fps = 90,
                  window_name = "ShowTexMoving", window_size = None, profile_on = False):
         super().__init__()
         self.tex = tex
@@ -74,7 +95,11 @@ class TexMoving(ShowBase):
             
         #Window properties set up 
         self.window_properties = WindowProperties()
-        self.window_properties.setSize(self.window_size, self.window_size)
+        try:
+            self.window_properties.setSize(self.window_size, self.window_size)
+        except:
+            self.window_properties.setSize(self.window_size)
+
         self.window_properties.setTitle(window_name)
         ShowBaseGlobal.base.win.requestProperties(self.window_properties)
         
@@ -91,12 +116,24 @@ class TexMoving(ShowBase):
         if self.velocity != 0:
             #Add task to taskmgr to translate texture
             self.taskMgr.add(self.moveTextureTask, "moveTextureTask")
-        
+        # self.taskMgr.add(self.takePictures, 'pictureTakingTask')
+
     #Task for moving the texture
     def moveTextureTask(self, task):
         new_position = -task.time*self.velocity
         self.card.setTexPos(self.texture_stage, new_position, 0, 0) #u, v, w
         return Task.cont
+
+    # def takePictures(self, picTask):
+    #     regionDisplayed = self.camNode.getDisplayRegion(0)
+    #     regionScreenShot = regionDisplayed.getScreenshot()
+    #     regionRamImage = regionScreenShot.getRamImage()
+    #     v = memoryview(regionRamImage).tolist()
+    #     img = np.array(v, dtype=np.uint8)
+    #     img = img.reshape((regionRamImage.getYSize(), regionRamImage.getXSize(), 4))
+    #     img = img[::-1]
+    #     np.save(f'image_{time.time()}_.   npy', img)
+    #     return picTask.cont
     
                 
 class TexFixed(TexMoving):
@@ -517,34 +554,6 @@ class BinocularFixed(BinocularMoving):
         ShowBaseGlobal.base.win.requestProperties(self.window_properties)
 
 
-class OpenLoopStim(ShowBase):
-    """
-    Takes in stimuli dataframe, as well as list of values/durations to show
-    different stimuli. 
-    
-    Stimulation class for open-loop experiments, such as under the microscope
-    Runs entirely autonomously -- could optionally be hooked to a go stimulus (from zmq or other)
-
-    Stimulus as DataFrame formatted:
-
-    stim_type:
-            'b' - binocular textures
-            's' - whole field textures
-            'rdk' - random dot motion
-
-    angle: singular for whole field and random dot, (left, right) for binocular
-    velocity: singular for whole field and random dot, (left, right) for binocular
-    texture: singular for whole field, ignored for random dot, (left, right) for binocular
-
-    duration: total length of stimuli (seconds)
-    stationary_time: length of time before motion begins
-        (e.g., duration:10, stationary_time:6 = 6 seconds static, 4 seconds motion before advancing stimulus)
-
-
-
-    """
-    pass
-
 class ClosedLoopStimChoice(ShowBase):
     """
     closed loop stimuli
@@ -553,8 +562,8 @@ class ClosedLoopStimChoice(ShowBase):
 
     stimuli contains possible stim choices
     """
-    def __init__(self, input_textures=None, def_freq=32, def_center_width=16, scale=8, fps=60, save_path=None,
-                 window_size=None, win_pos=(2400, 1080//4),window_name='Pandastim', live_update=False, debug=False,
+    def __init__(self, input_textures=None, def_freq=32, def_center_width=16, scale=8, fps=60, rot_offset=-90, save_path=None,
+                 window_size=None, win_pos=(2400, 1080//4),window_name='Pandastim', live_update=True, debug=False,
                  fish_id=None, fish_age=None, profile_on=False, gui=False, publisher_port=5009):
 
         super().__init__()
@@ -618,7 +627,7 @@ class ClosedLoopStimChoice(ShowBase):
         self.default_freq = def_freq
         self.default_center_width = def_center_width
 
-        self.rotation_offset = -90
+        self.rotation_offset = rot_offset
         self.default_strip_angle = 0
         self.default_center_x = -0.1
         self.default_center_y = 0
@@ -626,10 +635,17 @@ class ClosedLoopStimChoice(ShowBase):
         self.curr_id = 0
 
         self.set_stimulus(None)
+
         self.taskMgr.add(self.move_textures, "move textures")
 
         self.accept("stimulus", self.set_stimulus, [])
         self.accept("stimulus_loader", self.create_next_texture, [])
+
+        self._socket.send_pyobj([f" RUNNING {str(datetime.now())} "])
+        print('running on ', publisher_port)
+
+        self.time_checker = 1
+        self.time_counter = []
 
     def create_next_texture(self, stimulus):
         ind = 0
@@ -703,14 +719,11 @@ class ClosedLoopStimChoice(ShowBase):
             tex = textures.GratingGrayTexXY(texture_size=size, spatial_frequency=f, dark_val=dv, light_val=lv)
             return tex
 
-
     def set_stimulus(self, stimulus):
         try:
 	        print(stimulus.stimulus_name)
         except:
 	        print(stimulus)
-
-        # self._socket.send_pyobj(f"stimid {str(datetime.now())}: {self.curr_id} {stimulus}")
 
         self.clear_cards()
         self._stat_finish = True
@@ -764,12 +777,11 @@ class ClosedLoopStimChoice(ShowBase):
                         #print('error setting light dark')
                         #self.current_stimulus = {'stim_type': 'blank', 'velocity': 0, 'angle': 0,
                                                  #'texture': self.textures['blank']}
-
                 else:
                     try:
-                        self.current_stimulus['texture'] = self.textures['freq'][stimulus['freq']]
+                        self.current_stimulus['texture'] = self.textures['frequency'][stimulus['frequency']]
                     except:
-                        self.current_stimulus['texture'] = self.textures['freq'][self.default_freq]
+                        self.current_stimulus['texture'] = self.textures['frequency'][self.default_freq]
             else:
                 if self.textures['next_texture'] is not None:
                     self.current_stimulus['texture'] = self.textures['next_texture']
@@ -863,19 +875,6 @@ class ClosedLoopStimChoice(ShowBase):
         else:
             self.strip_angle = self.default_strip_angle
 
-        if stimulus is not None:
-            if 'stationary_time' in stimulus:
-                self._stat_finish = False
-                self._stimulus_stationary = tr.Thread(target=self.stimulus_stationary)
-                self._stimulus_stationary.start()
-
-
-            if 'stim_time' in stimulus:
-                if stimulus['stim_time'] != 0:
-                    self._max_finish = False
-                    self.max_time = tr.Thread(target=self.stimulus_max_duration)
-                    self.max_time.start()
-
         self.curr_id += 1
 
         self.create_texture_stages()
@@ -883,7 +882,87 @@ class ClosedLoopStimChoice(ShowBase):
         self.set_texture_stages()
         self.set_transforms()
 
+        if self.current_stimulus is not None:
+            if 'stationary_time' in self.current_stimulus:
+
+                # whole-field textures do not work with a copy of the velocity and binocular do not work without a copy
+                # ???
+                if self.current_stimulus['stim_type'] == 'b':
+                    self.previous_velocity = self.current_stimulus['velocity'].copy()
+                else:
+                    self.previous_velocity = self.current_stimulus['velocity']
+
+                self.taskMgr.add(self.enforce_stationary, 'StationaryTask')
+            if 'stim_time' in self.current_stimulus:
+                if self.current_stimulus['stim_type'] == 'b':
+                    if max(self.current_stimulus['stim_time']) > 0:
+                        self.taskMgr.add(self.stimulus_finisher, 'endingTask')
+                else:
+                    if self.current_stimulus['stim_time'] > 0:
+                        self.taskMgr.add(self.stimulus_finisher, 'endingTask')
+
         self.save()
+
+    def enforce_stationary(self, stat_task):
+        if self.current_stimulus['stim_type'] == 's':
+            if stat_task.time <= self.current_stimulus['stationary_time']:
+                self.current_stimulus['velocity'] = 0
+                return stat_task.cont
+
+            else:
+                self.current_stimulus['velocity'] = self.previous_velocity
+                return stat_task.done
+
+        elif self.current_stimulus['stim_type'] == 'b':
+            curr_t = stat_task.time
+            stat_times = self.current_stimulus['stationary_time']
+
+            if curr_t <= stat_times[0]:
+                self.current_stimulus['velocity'][0] = 0
+            else:
+                self.current_stimulus['velocity'][0] = self.previous_velocity[0]
+
+            if curr_t <= stat_times[1]:
+                self.current_stimulus['velocity'][1] = 0
+            else:
+                self.current_stimulus['velocity'][1] = self.previous_velocity[1]
+
+            if curr_t >= stat_times[0] and curr_t >= stat_times[1]:
+                self.current_stimulus['velocity'] = self.previous_velocity
+                return stat_task.done
+            else:
+                return stat_task.cont
+        print('somehow here', self.current_stimulus)
+
+    def stimulus_finisher(self, max_time_task):
+        if self.current_stimulus['stim_type'] == 's':
+            if max_time_task.time <= self.current_stimulus['stim_time']:
+                return max_time_task.cont
+            else:
+                self.set_stimulus(None)
+                return max_time_task.done
+
+        elif self.current_stimulus['stim_type'] =='b':
+            _curr_t = max_time_task.time
+            max_times = self.current_stimulus['stim_time']
+
+            if _curr_t <= max_times[0]:
+                pass
+            else:
+                self.left_card.detachNode()
+                self.current_stimulus['texture'][0] = self.textures['blank']
+
+            if _curr_t <= max_times[1]:
+                pass
+            else:
+                self.right_card.detachNode()
+                self.current_stimulus['texture'][1] = self.textures['blank']
+
+            if _curr_t >= max_times[0] and _curr_t >= max_times[1]:
+                return max_time_task.done
+            else:
+                return max_time_task.cont
+
 
     def save(self):
         if self.filestream:
@@ -895,10 +974,15 @@ class ClosedLoopStimChoice(ShowBase):
             self.filestream.write(f"{str(datetime.now())}: {self.curr_id} {saved_stim}")
             self.filestream.flush()
 
-
+    '''
+    Previous functions for managing maximum duration and static timings
+    
     def stimulus_max_duration(self):
 
+        the_id = self.curr_id
+
         if self.current_stimulus['stim_type'] == 's':
+
             if self.current_stimulus['stim_time'] > 0:
                 try:
                     if self.current_stimulus['stim_time'] <= self.current_stimulus['stationary_time']:
@@ -912,11 +996,16 @@ class ClosedLoopStimChoice(ShowBase):
                         break
                     pass
 
+            if self.curr_id != the_id:
+                return
+
             if not self._max_finish:
+                print(' i reset it because im naughty')
                 self.set_stimulus({'stim_type': 'blank', 'velocity': 0, 'angle': 0, 'texture': self.textures['blank']})
                 return
             else:
                 return
+
         elif self.current_stimulus['stim_type'] == 'b':
             t0, t1 = self.current_stimulus['stim_time']
             try:
@@ -944,6 +1033,10 @@ class ClosedLoopStimChoice(ShowBase):
                 _t0 = time.time()
                 while still_running:
                     elapsed = time.time() - _t0
+
+                    if self.curr_id != the_id:
+                        return
+
                     if elapsed >= t0 and not a_done:
                         self.left_card.detachNode()
                         self.current_stimulus['texture'][0] = self.textures['blank']
@@ -962,6 +1055,7 @@ class ClosedLoopStimChoice(ShowBase):
                 return
 
     def stimulus_stationary(self):
+
         if self.current_stimulus['stim_type'] == 's':
             if self.current_stimulus['stationary_time'] >= 0:
                 t_0 = time.time()
@@ -1020,6 +1114,7 @@ class ClosedLoopStimChoice(ShowBase):
 
             else:
                 return
+    '''
 
     def move_textures(self, task):
         # moving the stimuli
@@ -1042,6 +1137,7 @@ class ClosedLoopStimChoice(ShowBase):
                 try:
                     self.card.setTexPos(self.texture_stage, new_position, 0, 0) #u, v, w
                 except Exception as e:
+                    print(e)
                     print('error on move_texture_s')
 
         elif self.current_stimulus['stim_type'] == 'rdk' and self.dots_made:
@@ -1299,6 +1395,8 @@ class ClosedLoopStimChoice(ShowBase):
         """
         Clear cards when new stimulus: stim-class sensitive
         """
+        self.taskMgr.remove('StationaryTask')
+        self.taskMgr.remove('endingTask')
         try:
             if self.current_stimulus['stim_type'] == 'b':
                 self.left_card.detachNode()
@@ -1339,6 +1437,584 @@ class ClosedLoopStimChoice(ShowBase):
         translate = TransformState.make_pos2d((0.5, 0.5))
         return translate.compose(rotate.compose(scale.compose(center_shift)))
 
+
+class StimulusSequencing(ShowBase):
+
+    def __init__(self, stimuli, defaults=None, save_path=None):
+
+        super().__init__()
+
+        self.stimuli = stimuli
+        self.textures = {}
+
+        if defaults is None:
+            defaults = default_params
+        self.default_params = defaults
+
+        # if we got textures, add them to the dic
+        if self.stimuli is not None and 'texture' in self.stimuli.columns:
+            self.extract_texture_from_df()
+        self.default_grating_key = '255_0_32'
+        if self.default_grating_key not in self.textures:
+            self.textures[self.default_grating_key] = self.grating_creator([255, 0, 32, self.default_params['window_size']])
+        self.format_window()
+
+        self.curr_id = 0
+
+        if save_path:
+            self.filestream = utils.updated_saving(save_path)
+        else:
+            self.filestream = None
+
+        self.center_x = self.default_params['center_x']
+        self.center_y = self.default_params['center_y']
+        self.scale = np.sqrt(self.default_params['scale'])
+
+        self.current_stimulus = None
+
+    def format_window(self):
+        ShowBaseGlobal.globalClock.setMode(ClockObject.MLimited)
+        ShowBaseGlobal.globalClock.setFrameRate(self.default_params['fps'])
+
+        self.window_props = WindowProperties()
+
+        self.window_props.setTitle(self.default_params['window_title'])
+        self.window_props.setSize(tuple(self.default_params['window_size']))
+
+        self.window_props.set_undecorated(self.default_params['window_undecorated'])
+        self.disable_mouse()
+        self.window_props.set_foreground(self.default_params['window_foreground'])
+        self.window_props.set_origin(tuple(self.default_params['window_position']))
+
+        ShowBaseGlobal.base.win.requestProperties(self.window_props)
+
+        if self.default_params['profile_on']:
+            PStatClient.connect()
+            ShowBaseGlobal.base.setFrameRateMeter(True)
+
+    def extract_texture_from_df(self):
+        mutlti_tex = self.stimuli[[isinstance(x, list) for x in self.stimuli.texture]].index
+        texture_list = np.concatenate([list(chain.from_iterable(self.stimuli.loc[mutlti_tex].texture.values)), self.stimuli.drop(mutlti_tex, axis=0).texture.values])
+        self.texture_name_list = [f"{i.light_val}_{i.dark_val}_{i.frequency}" for i in texture_list]
+        tex_set = set(self.texture_name_list)
+        for t in list(tex_set):
+            self.textures[t] = texture_list[self.texture_name_list.index(t)]
+
+        tex_strings = []
+        tex_strings2 = []
+        for i in self.stimuli['texture'].to_list():
+            try:
+                tex_strings.append(f'{i[0].light_val}_{i[0].dark_val}_{i[0].frequency}')
+                tex_strings2.append(f'{i[1].light_val}_{i[1].dark_val}_{i[1].frequency}')
+
+            except TypeError:
+                tex_strings.append(f'{i.light_val}_{i.dark_val}_{i.frequency}')
+                tex_strings2.append(None)
+
+        self.stimuli.loc[:, 'texture_0'] = tex_strings
+        self.stimuli.loc[:, 'texture_1'] = tex_strings2
+        self.stimuli.texture_0 = self.stimuli.texture_0.astype('category')
+        self.stimuli.texture_1 = self.stimuli.texture_1.astype('category')
+
+        self.stimuli.pop('texture')
+
+    def set_stimulus(self):
+        if 'center_width' not in self.current_stimulus:
+            self.current_stimulus['center_width'] = self.default_params['center_width']
+        if 'center_x' in self.current_stimulus:
+            self.center_x = self.current_stimulus['center_x']
+        else:
+            self.center_x = self.default_params['center_x']
+
+        if 'center_y' in self.current_stimulus:
+            self.center_y = self.current_stimulus['center_y']
+        else:
+            self.center_y = self.default_params['center_y']
+
+        if 'strip_angle' in self.current_stimulus:
+            self.strip_angle = self.current_stimulus['strip_angle']
+        else:
+            self.strip_angle = self.default_params['center_y']
+
+        if self.current_stimulus is None:
+            pass
+        elif self.current_stimulus['stim_type'] == 's':
+            self.set_monocular()
+        elif self.current_stimulus['stim_type'] == 'b':
+            self.set_binocular()
+
+    def set_monocular(self):
+        cardmaker = CardMaker("stimcard")
+        cardmaker.setFrameFullscreenQuad()
+
+        # create tex stage
+        self.texture_stage = TextureStage("texture_stage")
+
+        # create card
+        self.card = self.aspect2d.attachNewNode(cardmaker.generate())
+        self.card.setScale(self.scale)
+        self.card.setColor((1, 1, 1, 1))
+        if isinstance(self.current_stimulus['texture_0'], str):
+            self.current_stimulus['texture_0'] = self.textures[self.current_stimulus['texture_0']]
+        # set tex
+        self.card.setTexture(self.texture_stage, self.current_stimulus['texture_0'].texture)
+
+        # set tex transforms
+        self.card.setTexRotate(self.texture_stage, self.current_stimulus['angle'] + self.default_params['rotation_offset'])
+        self.card.setTexPos(self.texture_stage,  self.center_x, self.center_y, 0)
+        self.taskMgr.add(self.move_monocular, "move_monocular")
+
+    def set_binocular(self):
+        ### CREATE TEXTURE STAGES ###
+        if isinstance(self.current_stimulus['texture_0'], str):
+            tex_1 = self.textures[self.current_stimulus['texture_0']]
+        else:
+            tex_1 = self.current_stimulus['texture_0']
+
+        if isinstance(self.current_stimulus['texture_1'], str):
+            tex_2 = self.textures[self.current_stimulus['texture_1']]
+        else:
+            tex_2 = self.current_stimulus['texture_1']
+
+        tex_1_size = tex_1.texture_size
+        tex_2_size = tex_2.texture_size
+
+        self.left_texture_stage = TextureStage('left_texture_stage')
+        self.left_mask = Texture("left_mask_texture")
+        self.left_mask.setup2dTexture(tex_1_size[0],
+                                      tex_1_size[1],
+                                      Texture.T_unsigned_byte,
+                                      Texture.F_luminance)
+        self.left_mask_stage = TextureStage('left_mask_array')
+
+        self.right_texture_stage = TextureStage('right_texture_stage')
+        self.right_mask = Texture("right_mask_texture")
+        self.right_mask.setup2dTexture(tex_2_size[0],
+                                       tex_2_size[1],
+                                       Texture.T_unsigned_byte,
+                                       Texture.F_luminance)
+        self.right_mask_stage = TextureStage('right_mask_stage')
+
+        ## CREATE CARDS ###
+        cardmaker = CardMaker("stimcard")
+        cardmaker.setFrameFullscreenQuad()
+
+        self.setBackgroundColor((0, 0, 0, 1))
+        self.left_card = self.aspect2d.attachNewNode(cardmaker.generate())
+        self.left_card.setAttrib(ColorBlendAttrib.make(ColorBlendAttrib.M_add))
+        self.right_card = self.aspect2d.attachNewNode(cardmaker.generate())
+        self.right_card.setAttrib(ColorBlendAttrib.make(ColorBlendAttrib.M_add))
+
+        ### SET TEXTURES ###
+
+        # CREATE MASK ARRAYS
+        self.left_mask_array = 255 * np.ones((tex_1_size[0],
+                                              tex_1_size[1]), dtype=np.uint8)
+        self.left_mask_array[:, (tex_1_size[1] // 2)
+                                - self.current_stimulus['center_width'] // 2:] = 0
+
+        self.right_mask_array = 255 * np.ones((tex_2_size[0],
+                                               tex_2_size[1]), dtype=np.uint8)
+        self.right_mask_array[:,
+        : (tex_2_size[1] // 2) + self.current_stimulus['center_width'] // 2] = 0
+
+        # ADD TEXTURE STAGES TO CARDS
+        self.left_mask.setRamImage(self.left_mask_array)
+        self.left_card.setTexture(self.left_texture_stage, tex_1.texture)
+
+        self.left_card.setTexture(self.left_mask_stage, self.left_mask)
+
+        # Multiply the texture stages together
+        self.left_mask_stage.setCombineRgb(TextureStage.CMModulate,
+                                           TextureStage.CSTexture,
+                                           TextureStage.COSrcColor,
+                                           TextureStage.CSPrevious,
+                                           TextureStage.COSrcColor)
+        self.right_mask.setRamImage(self.right_mask_array)
+        self.right_card.setTexture(self.right_texture_stage, tex_2.texture)
+        self.right_card.setTexture(self.right_mask_stage, self.right_mask)
+
+        # Multiply the texture stages together
+        self.right_mask_stage.setCombineRgb(TextureStage.CMModulate,
+                                            TextureStage.CSTexture,
+                                            TextureStage.COSrcColor,
+                                            TextureStage.CSPrevious,
+                                            TextureStage.COSrcColor)
+
+        ### Do the transform things ###
+
+        self.mask_transform = self.trs_transform()
+
+        self.left_angle = self.strip_angle + self.current_stimulus['angle'][0] + self.default_params['rotation_offset']
+        self.right_angle = self.strip_angle + self.current_stimulus['angle'][1] + self.default_params['rotation_offset']
+
+        self.left_card.setTexTransform(self.left_mask_stage, self.mask_transform)
+        self.right_card.setTexTransform(self.right_mask_stage, self.mask_transform)
+        # Left texture
+        self.left_card.setTexScale(self.left_texture_stage, 1 / self.scale)
+        self.left_card.setTexRotate(self.left_texture_stage, self.left_angle)
+
+        # Right texture
+        self.right_card.setTexScale(self.right_texture_stage, 1 / self.scale)
+        self.right_card.setTexRotate(self.right_texture_stage, self.right_angle)
+
+        self.taskMgr.add(self.move_binocular, "move_binocular")
+
+    def move_monocular(self, monocular_move_task):
+        if 'stationary_time' not in self.current_stimulus:
+            self.current_stimulus['stationary_time'] = 0
+
+        if monocular_move_task.time <= self.current_stimulus['stationary_time']:
+            pass
+        elif 'duration' in self.current_stimulus and monocular_move_task.time >= self.current_stimulus['duration']:
+            self.clear_cards()
+            return monocular_move_task.done
+        else:
+            new_position = -monocular_move_task.time*self.current_stimulus['velocity'] * 2
+            try:
+                self.card.setTexPos(self.texture_stage, new_position, 0, 0) #u, v, w
+            except Exception as e:
+                print(e, 'error on move_monocular')
+        return monocular_move_task.cont
+
+    def move_binocular(self, binocular_move_task):
+        if 'stationary_time' not in self.current_stimulus:
+            self.current_stimulus['stationary_time'] = [0, 0]
+        try:
+            if np.isnan(self.current_stimulus['stationary_time']):
+                self.current_stimulus['stationary_time'] = [0,0]
+        except ValueError:
+            if np.isnan(self.current_stimulus['stationary_time'][0]):
+                self.current_stimulus['stationary_time'][0] = 0
+            if np.isnan(self.current_stimulus['stationary_time'][1]):
+                self.current_stimulus['stationary_time'][1] = 0
+
+        if binocular_move_task.time <= self.current_stimulus['stationary_time'][0]:
+            pass
+        elif binocular_move_task.time >= self.current_stimulus['duration'][0]:
+            self.left_card.detachNode()
+        else:
+            left_tex_position = -binocular_move_task.time * self.current_stimulus['velocity'][0] * 2  # negative b/c texture stage
+            try:
+                self.left_card.setTexPos(self.left_texture_stage, left_tex_position, 0, 0)
+            except Exception as e:
+                print('error on move_texture_b')
+
+        if binocular_move_task.time <= self.current_stimulus['stationary_time'][1]:
+            pass
+        elif binocular_move_task.time >= self.current_stimulus['duration'][1]:
+            self.right_card.detachNode()
+        else:
+            right_tex_position = -binocular_move_task.time * self.current_stimulus['velocity'][0] * 2  # negative b/c texture stage
+            try:
+                self.right_card.setTexPos(self.right_texture_stage, right_tex_position, 0, 0)
+            except Exception as e:
+                print('error on move_texture_b')
+
+        if binocular_move_task.time >= max(self.current_stimulus['duration'][0], self.current_stimulus['duration'][1]):
+            self.clear_cards()
+            return binocular_move_task.done
+
+        return binocular_move_task.cont
+
+    def clear_cards(self):
+        try:
+            self.card.detach_node()
+        except:
+            pass
+        try:
+            self.left_card.detach_node()
+        except:
+            pass
+        try:
+            self.right_card.detach_node()
+        except:
+            pass
+
+        self.taskMgr.remove('move_monocular')
+        self.taskMgr.remove('move_binocular')
+
+    def trs_transform(self):
+        """
+        trs = translate-rotate-scale transform for mask stage
+        panda3d developer rdb contributed to this code
+        """
+
+        ## highly recommend not monkeying with this too much
+
+        self.mask_position_uv = (self.center_x, self.center_y)
+        pos = 0.5 + self.mask_position_uv[0], 0.5 + self.mask_position_uv[1]
+        center_shift = TransformState.make_pos2d((-pos[0], -pos[1]))
+        scale = TransformState.make_scale2d(1 / self.scale)
+        rotate = TransformState.make_rotate2d(self.strip_angle)
+        translate = TransformState.make_pos2d((0.5, 0.5))
+        return translate.compose(rotate.compose(scale.compose(center_shift)))
+
+    def save(self):
+        if self.filestream:
+            saved_stim = dict(self.current_stimulus.copy())
+            self.filestream.write("\n")
+            self.filestream.write(f"{str(datetime.now())}: {self.curr_id} {saved_stim}")
+            self.filestream.flush()
+
+    @staticmethod
+    def grating_key_creator(stimulus, defaults, b=False):
+        try:
+            lv = np.int16(stimulus['lightValue'])
+        except:
+            lv = np.int16(defaults['light_value'])
+        try:
+            dv = np.int16(stimulus['darkValue'])
+        except:
+            dv = np.int16(defaults['dark_value'])
+        try:
+            f = np.int16(stimulus['frequency'])
+        except :
+            f = np.int16(defaults['frequency'])
+
+        if isinstance(lv, np.int16) and not b:
+            key = f'{lv}_{dv}_{f}'
+            return key, [lv, dv, f, defaults['window_size']]
+        else:
+            # handle the binocular case
+            if not isinstance(lv, np.int16):
+                pass
+            else:
+                lv = [lv, lv]
+                dv = [dv, dv]
+                f = [f, f]
+            keys = [f'{lv[i]}_{dv[i]}_{f[i]}' for i in range(len(lv))]
+            params = [[lv[i], dv[i], f[i], defaults['window_size']] for i in range(len(lv))]
+            return keys, params
+
+
+    @staticmethod
+    def grating_creator(grating_params):
+        light_val, dark_val, freq, size = grating_params
+        tex = textures.GratingGrayTexXY(
+            texture_size=size,
+            spatial_frequency=freq,
+            dark_val=dark_val,
+            light_val=light_val
+        )
+        return tex
+
+
+class OpenLoopStimulus(StimulusSequencing):
+    def __init__(self, stimuli, *args, **kwargs):
+        '''
+        An open-loop implementation that expects to be fed a sequence of stimuli
+
+        :param stimuli: generally a dataframe with stimuli in expected order
+        :param args/kwargs: generally different default parameters & a save path
+        '''
+
+        super().__init__(stimuli, *args, **kwargs)
+
+        self.current_stimulus = self.stimuli.loc[self.curr_id]
+        self.set_stimulus()
+
+    def clear_cards(self):
+        super().clear_cards()
+
+        self.curr_id += 1
+        try:
+            self.current_stimulus = self.stimuli.loc[self.curr_id]
+        except KeyError:
+            sys.exit()
+
+        self.save()
+        self.set_stimulus()
+
+
+class MonocularImprov(StimulusSequencing):
+    def __init__(self, input_port, input_ip=None, output_port=5008, *args, **kwargs):
+        super().__init__(None, *args, **kwargs)
+
+        self.subscriber = utils.Subscriber(topic="stim", port=input_port, ip=input_ip)
+        self.monitor = utils.MonitorDataPass(self.subscriber)
+        self.publisher = utils.Publisher(str(output_port))
+
+        self.last_sent_message = None
+
+        # accept external messages to do the things and such
+        self.accept("stimulus", self.update_stimulus, [])
+        self.accept("stimulus_loader", self.create_next_texture, [])
+
+    def update_stimulus(self, new_stimulus):
+        self.curr_id += 1
+        grating_key, grating_params = self.grating_key_creator(new_stimulus, self.default_params)
+        try:
+            texture = self.textures[grating_key]
+        except Exception as e:
+            logging.warning('texture never created, using default')
+            texture = self.textures[self.default_grating_key]
+        new_stimulus['texture_0'] = texture
+        self.current_stimulus = new_stimulus
+        self.clear_cards()
+        self.set_stimulus()
+
+    def create_next_texture(self, data):
+        grating_key, grating_params = self.grating_key_creator(data, self.default_params)
+        if grating_key in self.textures:
+            msg = f"texture {grating_key} exists, passing"
+            logging.info(msg)
+        else:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(self.grating_creator, grating_params)
+                tex = future.result()
+                self.textures[grating_key] = tex
+                msg = f'created texture {grating_key}'
+                logging.info(msg)
+
+        # LEGACY IMPROV MESSAGE
+        sent_message = 'loaded'
+        if self.last_sent_message != sent_message:
+            self.publisher.socket.send_pyobj(f"stimid {str(datetime.now())} loaded: {data}")
+            self.last_sent_message = sent_message
+
+    # same core as base class: includes messages out and texture permanence
+    def move_monocular(self, monocular_move_task):
+        if 'stationary_time' not in self.current_stimulus:
+            self.current_stimulus['stationary_time'] = 0
+
+        # INCLUDE LEGACY SOCKET MESSAGE
+        if monocular_move_task.time <= self.current_stimulus['stationary_time']:
+            sent_message = 'stationary'
+            if self.last_sent_message != sent_message:
+                self.publisher.socket.send_pyobj(f"stimid {str(datetime.now())} stationary: {self.current_stimulus}")
+                self.last_sent_message = sent_message
+        elif 'duration' in self.current_stimulus and monocular_move_task.time >= self.current_stimulus['duration']:
+            # self.clear_cards()
+            return monocular_move_task.done
+        else:
+            new_position = -monocular_move_task.time*self.current_stimulus['velocity'] * 2
+            try:
+                self.card.setTexPos(self.texture_stage, new_position, 0, 0) #u, v, w
+
+                sent_message = 'moving'
+                if self.last_sent_message != sent_message:
+                    self.publisher.socket.send_pyobj(f"stimid {str(datetime.now())} moving: {self.current_stimulus}")
+                    self.last_sent_message = sent_message
+
+            except Exception as e:
+                print(e, 'error on move_monocular')
+
+        return monocular_move_task.cont
+
+
+class BehavioralStimuli(StimulusSequencing):
+    def __init__(self, stimuli, *args, **kwargs):
+        super().__init__(stimuli, *args, **kwargs)
+
+        self.textures['centering_dot'] = textures.CircleGrayTex(circle_radius=self.default_params['center_dot_size'], texture_size=self.default_params['window_size'][0])
+
+        self.accept("stimulus", self.change_stimulus, [])
+        self.accept("stimulus_update", self.update_stimulus, [])
+        self.accept("calibration_stimulus", self.calibration_stimulus, [])
+
+        self.accept('2', self.matt_accept2)
+        self.accept('4', self.matt_accept4)
+        self.accept('5', self.matt_accept5)
+        self.accept('6', self.matt_accept6)
+        self.accept('8', self.matt_accept8)
+
+    def matt_accept2(self):
+        self.center_y -= 0.01
+        self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0)
+        print(f'set to {self.center_x} {self.center_y}')
+    def matt_accept4(self):
+        self.center_x -= 0.01
+        self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0)
+        print(f'set to {self.center_x} {self.center_y}')
+    def matt_accept5(self):
+        self.center_x, self.center_y = [0,0]
+        self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0)
+        print(f'set to {self.center_x} {self.center_y}')
+    def matt_accept6(self):
+        self.center_x += 0.01
+        self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0)
+        print(f'set to {self.center_x} {self.center_y}')
+    def matt_accept8(self):
+        self.center_y += 0.01
+        self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0)
+        print(f'set to {self.center_x} {self.center_y}')
+
+
+    def calibration_stimulus(self, toggle):
+        if toggle is False:
+            self.current_stimulus = None
+            self.clear_cards()
+        else:
+            cali_params = utils.get_calibration_params()
+            if cali_params is None:
+                self.textures['calibration'] = textures.CalibrationTriangles()
+            else:
+                self.textures['calibration'] = textures.CalibrationTriangles(tri_size=cali_params['tri_size'],
+                                                circle_radius=cali_params['circle_radius'],
+                                                x_off=cali_params['x_off'],
+                                                y_off=cali_params['y_off'])
+            self.current_stimulus = {'texture_0' : self.textures['calibration'], 'velocity' : 0, 'angle' : 0}
+            self.set_monocular()
+
+    def update_stimulus(self, data):
+        x, y = data
+        self.center_x = x
+        self.center_y = y
+        print(f'moved to {data}')
+        # self.card.setTexPos(self.texture_stage,  self.center_x, self.center_y, 0)
+        try:
+            self.card.setTexPos(self.texture_stage,  self.center_x, self.center_y, 0)
+        except:
+            print('no card exists')
+
+    def change_stimulus(self, new_stimulus):
+        self.curr_id, self.current_stimulus = new_stimulus
+        print(self.current_stimulus)
+        self.clear_cards()
+        self.set_stimulus()
+        print('checking here', self.center_x)
+
+    def set_stimulus(self):
+        if self.current_stimulus is None:
+            pass
+        elif self.current_stimulus['stim_type'] == 's':
+            if 'texture' in self.current_stimulus:
+                self.current_stimulus['texture_0'] = self.current_stimulus['texture']
+            else:
+                _key, _params = self.grating_key_creator(self.current_stimulus, self.default_params)
+                if _key not in self.textures:
+                    self.textures[_key] = self.grating_creator(_params)
+                self.current_stimulus['texture_0'] = self.textures[_key]
+
+            self.set_monocular()
+        elif self.current_stimulus['stim_type'] == 'b':
+            if 'texture' in self.current_stimulus:
+                self.current_stimulus['texture_0'] = self.current_stimulus['texture'][0]
+                self.current_stimulus['texture_1'] = self.current_stimulus['texture'][1]
+            else:
+                keys, params = self.grating_key_creator(self.current_stimulus, self.default_params, True)
+                for n in range(len(keys)):
+                    if keys[n] not in self.textures:
+                        self.textures[keys[n]] = self.grating_creator(params[n])
+                self.current_stimulus['texture_0'] = self.textures[keys[0]]
+                self.current_stimulus['texture_1'] = self.textures[keys[1]]
+
+            self.set_binocular()
+        elif self.current_stimulus['stim_type'] == 'centering':
+            self.run_centering()
+
+    def run_centering(self):
+        if self.current_stimulus['type'] == 'radial':
+            # probably a zarr of the radial, take a slice at a time
+            pass
+        else:
+            ## do the static circle
+            self.current_stimulus = {'texture_0' : self.textures['centering_dot'], 'velocity' : 0, 'angle' : 0}
+            self.set_monocular()
+
+    def move_monocular(self, task):
+        pass
 
 class KeyboardToggleTex(ShowBase):
     """

@@ -11,8 +11,20 @@ in each subclass as a numpy array that looks how you want.
 Component types (texture data types in panda3d):
 https://www.panda3d.org/reference/python/classpanda3d_1_1core_1_1Texture.html#a81f78fc173dedefe5a049c0aa3eed2c0
 """
+
+try:
+    import cv2
+except:
+    print('error importing cv2')
+
+import math
+
 import numpy as np
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+except:
+    print('error import matplotlib')
+
 from panda3d.core import Texture
 
 from pandastim import utils
@@ -318,7 +330,7 @@ class GratingGrayTexXY(TextureBaseXY):
     Grayscale 2d square wave (grating)
     """
 
-    def __init__(self, texture_size=512, texture_name="grating_gray",
+    def __init__(self, texture_size=(512, 512), texture_name="grating_gray",
                  spatial_frequency=10, dark_val=0, light_val=255):
         self.frequency = spatial_frequency
         self.dark_val = dark_val
@@ -337,7 +349,57 @@ class GratingGrayTexXY(TextureBaseXY):
     def __str__(self):
         return f"{type(self).__name__} size:{self.texture_size} frequency:{self.frequency}"
 
-#%%  
+
+class CalibrationTriangles(TextureBaseXY):
+    """
+    Filled circle: grayscale on grayscale with circle_radius, centered at circle_center
+    with face color fg_intensity on background bg_intensity. Center position is in pixels
+    from center of image.
+    """
+
+    def __init__(self, texture_size=(1024, 1024), texture_name="circs", tri_size=50,
+                 circle_radius=7, x_off=500, y_off=0
+                 ):
+
+        self.texture_size = texture_size
+
+        self.tri_size = tri_size
+        self.x_offset = x_off
+        self.y_offset = y_off
+
+        self.radius = circle_radius
+
+        self.midx = self.texture_size[0]//2
+        self.midy = self.texture_size[1]//2
+
+        self.pt1 = (int((self.midx + self.x_offset - (self.tri_size * math.sqrt(3)) // 2)),
+                    int((self.midy + self.y_offset + self.tri_size // 2)))
+
+        self.pt2 = (int((self.midx + self.x_offset + (self.tri_size * math.sqrt(3)) // 2)),
+                    int((self.midy + self.y_offset - self.tri_size // 2)))
+
+        self.pt3 = (int((self.midx + self.x_offset - (self.tri_size * math.sqrt(3)) // 2)),
+                    int((self.midy + self.y_offset - self.tri_size // 2)))
+
+        super().__init__(texture_size=texture_size, texture_name=texture_name)
+
+    def create_texture(self):
+        circle_texture = np.zeros((self.texture_size[1], self.texture_size[0]))
+
+        [cv2.circle(circle_texture, i, self.radius, 255, -1) for i in [self.pt1, self.pt2, self.pt3]]
+
+        output = np.uint8(circle_texture)
+
+        return output
+
+    def __str__(self):
+        return f"{type(self).__name__} size:{self.texture_size} center:{self.midx, self.midy} radius:{self.radius}"
+
+    def projct_coords(self):
+        return np.array([self.pt1, self.pt2, self.pt3])
+
+
+# %%
 if __name__ == '__main__':
     example = 5
     if example == 0:

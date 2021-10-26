@@ -7,12 +7,10 @@ Part of pandastim package: https://github.com/EricThomson/pandastim
 """
 from pandastim import utils, textures
 
-import os
 import sys
 import numpy as np
 import logging
 import zmq
-import json
 
 import concurrent.futures
 
@@ -1459,8 +1457,6 @@ class StimulusSequencing(ShowBase):
         self.default_grating_key = '255_0_32'
         if self.default_grating_key not in self.textures:
             self.textures[self.default_grating_key] = self.grating_creator([255, 0, 32, self.default_params['window_size']])
-
-        self.window_props = WindowProperties()
         self.format_window()
 
         self.curr_id = 0
@@ -1479,6 +1475,8 @@ class StimulusSequencing(ShowBase):
     def format_window(self):
         ShowBaseGlobal.globalClock.setMode(ClockObject.MLimited)
         ShowBaseGlobal.globalClock.setFrameRate(self.default_params['fps'])
+
+        self.window_props = WindowProperties()
 
         self.window_props.setTitle(self.default_params['window_title'])
         self.window_props.setSize(tuple(self.default_params['window_size']))
@@ -1521,6 +1519,23 @@ class StimulusSequencing(ShowBase):
         self.stimuli.pop('texture')
 
     def set_stimulus(self):
+        if 'center_width' not in self.current_stimulus:
+            self.current_stimulus['center_width'] = self.default_params['center_width']
+        if 'center_x' in self.current_stimulus:
+            self.center_x = self.current_stimulus['center_x']
+        else:
+            self.center_x = self.default_params['center_x']
+
+        if 'center_y' in self.current_stimulus:
+            self.center_y = self.current_stimulus['center_y']
+        else:
+            self.center_y = self.default_params['center_y']
+
+        if 'strip_angle' in self.current_stimulus:
+            self.strip_angle = self.current_stimulus['strip_angle']
+        else:
+            self.strip_angle = self.default_params['center_y']
+
         if self.current_stimulus is None:
             pass
         elif self.current_stimulus['stim_type'] == 's':
@@ -1550,24 +1565,6 @@ class StimulusSequencing(ShowBase):
         self.taskMgr.add(self.move_monocular, "move_monocular")
 
     def set_binocular(self):
-
-        if 'center_width' not in self.current_stimulus:
-            self.current_stimulus['center_width'] = self.default_params['center_width']
-        if 'center_x' in self.current_stimulus:
-            self.center_x = self.current_stimulus['center_x']
-        else:
-            self.center_x = self.default_params['center_x']
-
-        if 'center_y' in self.current_stimulus:
-            self.center_y = self.current_stimulus['center_y']
-        else:
-            self.center_y = self.default_params['center_y']
-
-        if 'strip_angle' in self.current_stimulus:
-            self.strip_angle = self.current_stimulus['strip_angle']
-        else:
-            self.strip_angle = self.default_params['center_y']
-
         ### CREATE TEXTURE STAGES ###
         if isinstance(self.current_stimulus['texture_0'], str):
             tex_1 = self.textures[self.current_stimulus['texture_0']]
@@ -1916,38 +1913,67 @@ class BehavioralStimuli(StimulusSequencing):
         self.accept("stimulus_update", self.update_stimulus, [])
         self.accept("calibration_stimulus", self.calibration_stimulus, [])
 
+        self.accept('2', self.matt_accept2)
+        self.accept('4', self.matt_accept4)
+        self.accept('5', self.matt_accept5)
+        self.accept('6', self.matt_accept6)
+        self.accept('8', self.matt_accept8)
+
+    def matt_accept2(self):
+        self.center_y -= 0.01
+        self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0)
+        print(f'set to {self.center_x} {self.center_y}')
+    def matt_accept4(self):
+        self.center_x -= 0.01
+        self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0)
+        print(f'set to {self.center_x} {self.center_y}')
+    def matt_accept5(self):
+        self.center_x, self.center_y = [0,0]
+        self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0)
+        print(f'set to {self.center_x} {self.center_y}')
+    def matt_accept6(self):
+        self.center_x += 0.01
+        self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0)
+        print(f'set to {self.center_x} {self.center_y}')
+    def matt_accept8(self):
+        self.center_y += 0.01
+        self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0)
+        print(f'set to {self.center_x} {self.center_y}')
+
+
     def calibration_stimulus(self, toggle):
         if toggle is False:
             self.current_stimulus = None
             self.clear_cards()
         else:
-            cali_params = self.get_calibration_params()
+            cali_params = utils.get_calibration_params()
             if cali_params is None:
                 self.textures['calibration'] = textures.CalibrationTriangles()
             else:
                 self.textures['calibration'] = textures.CalibrationTriangles(tri_size=cali_params['tri_size'],
-                                                                             circle_radius=cali_params['circle_radius'],
-                                                                             x_off = cali_params['x_off'],
-                                                                             y_off = cali_params['y_off'])
+                                                circle_radius=cali_params['circle_radius'],
+                                                x_off=cali_params['x_off'],
+                                                y_off=cali_params['y_off'])
             self.current_stimulus = {'texture_0' : self.textures['calibration'], 'velocity' : 0, 'angle' : 0}
             self.set_monocular()
 
-    def get_calibration_params(self):
-        param_path = Path(sys.executable).parents[0].joinpath(r'Lib\site-packages\pandastim\resources\caliparams.json')
-        if os.path.exists(param_path):
-            with open(param_path) as json_file:
-                data =  json.load(json_file)
-            return data
-        else:
-            return None
-
-    def update_stimulus(self):
-        pass
+    def update_stimulus(self, data):
+        x, y = data
+        self.center_x = x
+        self.center_y = y
+        print(f'moved to {data}')
+        # self.card.setTexPos(self.texture_stage,  self.center_x, self.center_y, 0)
+        try:
+            self.card.setTexPos(self.texture_stage,  self.center_x, self.center_y, 0)
+        except:
+            print('no card exists')
 
     def change_stimulus(self, new_stimulus):
         self.curr_id, self.current_stimulus = new_stimulus
+        print(self.current_stimulus)
         self.clear_cards()
         self.set_stimulus()
+        print('checking here', self.center_x)
 
     def set_stimulus(self):
         if self.current_stimulus is None:
@@ -1987,6 +2013,8 @@ class BehavioralStimuli(StimulusSequencing):
             self.current_stimulus = {'texture_0' : self.textures['centering_dot'], 'velocity' : 0, 'angle' : 0}
             self.set_monocular()
 
+    def move_monocular(self, task):
+        pass
 
 class KeyboardToggleTex(ShowBase):
     """

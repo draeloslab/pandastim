@@ -2,10 +2,11 @@ import numpy as np
 
 import cv2
 import zmq
+import sys
 
 from pathlib import Path
 
-from pandastim import utils
+from pandastim import utils, textures
 
 
 class CalibrationException(Exception):
@@ -16,12 +17,23 @@ class CalibrationException(Exception):
 
 
 class StimulusCalibrator:
-    def __init__(self, camera_img, proj_pts):
+    def __init__(self, camera_img):
 
-        self.camera_img = camera_img
-        self.projected_pts = np.array(proj_pts)
+        self.camera_img = camera_img - 1
+        self.projected_pts = self.get_proj_pts()
         self.projected_pts = self.projected_pts[np.argsort(self._find_angles(self.projected_pts)), :]
         self.camera_pts = self._find_triangle(self.camera_img)
+
+    @staticmethod
+    def get_proj_pts():
+        cali_params = utils.get_calibration_params()
+        if cali_params is None:
+            return textures.CalibrationTriangles().projct_coords()
+        else:
+            return textures.CalibrationTriangles(tri_size=cali_params['tri_size'],
+                                                circle_radius=cali_params['circle_radius'],
+                                                x_off=cali_params['x_off'],
+                                                y_off=cali_params['y_off']).projct_coords()
 
     def transforms(self):
         x_proj = np.vstack([self.projected_pts.T, np.ones(3)])
@@ -73,6 +85,19 @@ class StimulusCalibrator:
                 )
             )
         return angles
+
+
+def save_params(proj2cam, cam2proj):
+    parent_path = Path(sys.executable).parents[0].joinpath(r'Lib\site-packages\pandastim\resources')
+    np.save(parent_path.joinpath('proj2cam.npy'), proj2cam)
+    np.save(parent_path.joinpath('cam2proj.npy'), cam2proj)
+
+
+def load_params():
+    parent_path = Path(sys.executable).parents[0].joinpath(r'Lib\site-packages\pandastim\resources')
+    proj2cam = np.load(parent_path.joinpath('proj2cam.npy'))
+    cam2proj = np.load(parent_path.joinpath('cam2proj.npy'))
+    return proj2cam, cam2proj
 
 
 def calibrator(input_socket, point_dump):

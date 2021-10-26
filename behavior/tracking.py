@@ -172,15 +172,16 @@ class ExternalCameraDisplay(CameraViewFish):
             self.centering_socket = self.centering_context.socket(zmq.PUB)
             self.centering_socket.bind(str("tcp://*:") + str(self.centering_socket_number))
 
-    def stimulus_calibration(self):
+    
+    def center_calibrator(self):
         print('centering')
         topic = 'centering'
-        self.msg_sender(self.centering_socket, self.image_item.image, topic)
+        self.msg_sender(sock=self.centering_socket, img=self.image_item.image, string=topic, image=True)
 
-    def center_calibrator(self):
+    def stimulus_calibration(self):
         print('calibrating')
         topic = 'calibration'
-        self.msg_sender(self.centering_socket, self.image_item.image, topic)
+        self.msg_sender(sock=self.centering_socket, img=self.image_item.image, string=topic, image=True)
 
     def calibration_stimulus(self):
         if self.calibration_toggle == 0:
@@ -193,21 +194,21 @@ class ExternalCameraDisplay(CameraViewFish):
         topic = 'calibrationStimulus'
 
         if self.calibration_toggle == 0:
-            self.msg_sender(self.centering_socket, status, topic, image=False)
+            self.msg_sender(sock=self.centering_socket, img=status, string=topic, image=False)
 
         if self.calibration_toggle == 1:
-            self.msg_sender(self.centering_socket, status, topic, image=False)
+            self.msg_sender(sock=self.centering_socket, img=status, string=topic, image=False)
 
     @staticmethod
-    def msg_sender(sock, img, string, flags=0, image=True):
+    def msg_sender(sock, img, string, image=True):
         if image:
             my_msg = dict(dtype=str(img.dtype), shape=img.shape)
-            sock.send_string(string, flags | zmq.SNDMORE)
-            sock.send_json(my_msg, flags | zmq.SNDMORE)
-            return sock.send(img, flags)
+            sock.send_string(string, zmq.SNDMORE)
+            sock.send_json(my_msg, zmq.SNDMORE)
+            return sock.send(img)
         else:
             sock.send_string(string, zmq.SNDMORE)
-            sock.send_pyobj([img])
+            return sock.send_pyobj([img])
 
     def retrieve_image(self):
         super().retrieve_image()

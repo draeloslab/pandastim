@@ -20,7 +20,10 @@ except:
 import math
 
 import numpy as np
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+except:
+    print('error import matplotlib')
 
 from panda3d.core import Texture
 
@@ -393,7 +396,7 @@ class CalibrationTriangles(TextureBaseXY):
         return f"{type(self).__name__} size:{self.texture_size} center:{self.midx, self.midy} radius:{self.radius}"
 
     def projct_coords(self):
-        return [self.pt1, self.pt2, self.pt3]
+        return np.array([self.pt1, self.pt2, self.pt3])
 
 
 # %%

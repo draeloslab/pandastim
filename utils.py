@@ -9,13 +9,15 @@ import threading
 import zmq
 import time
 import os
+import json
+import sys
 
 from direct.showbase import DirectObject
 from direct.showbase.MessengerGlobal import messenger
 
 from scipy import signal
 from datetime import datetime as dt
-
+from pathlib import Path
 
 def port_provider():
     """
@@ -289,10 +291,9 @@ def sequence_runner(df, port="5005", listening_port='5006'):
             _socket.send_pyobj(df.loc[stim_n])
 
 
-def img_receiver(socket, flags=0):
-    string = socket.recv_string(flags=flags)
-    msg_dict = socket.recv_json(flags=flags)
-    msg = socket.recv(flags=flags)
+def img_receiver(socket, ):
+    msg_dict = socket.recv_json()
+    msg = socket.recv()
     _img = np.frombuffer(bytes(memoryview(msg)), dtype=msg_dict['dtype'])
     img = _img.reshape(msg_dict['shape'])
     return np.array(img)
@@ -307,6 +308,16 @@ def angle_mean(angles, axis=0):
     """Correct calculation of a mean of an array of angles
     """
     return np.arctan2(np.sum(np.sin(angles), axis), np.sum(np.cos(angles), axis))
+
+
+def get_calibration_params():
+    param_path = Path(sys.executable).parents[0].joinpath(r'Lib\site-packages\pandastim\resources\caliparams.json')
+    if os.path.exists(param_path):
+        with open(param_path) as json_file:
+            data = json.load(json_file)
+        return data
+    else:
+        return None
 
 #%%        
 if __name__ == '__main__':

@@ -1,4 +1,4 @@
-from pandastim.working.behavior import Tracking, Protocol
+from pandastim.behavior import Tracking, Protocol
 from pandastim.utils import port_provider
 from pandastim.stimuli import BehavioralStimuli
 
@@ -14,10 +14,10 @@ stim_params = {
     'center_x' : 0,
     'center_y' : 0,
     'scale' : 8,
-    'rotation_offset' : -90,
+    'rotation_offset' : 90,
     'center_dot_size' : 5,
     'window_size' : (1024, 1024),
-    'window_position' : (200, 200),
+    'window_position' : (2432, 0),
     'fps' : 60,
     'window_undecorated' : True,
     'window_foreground' : True,
@@ -30,7 +30,9 @@ def stim(_ports):
     behavioral_stimuli = BehavioralStimuli(stimuli=None, defaults=stim_params)
 
     # the panda3d event handler will not work across processes, but will across threads
-    protocol_thread = tr.Thread(target=Protocol.BaseProtocol, args=(None, _ports, ))
+    # protocol_thread = tr.Thread(target=Protocol.BaseProtocol, args=(None, _ports, stim_params))
+    protocol_thread = tr.Thread(target=Protocol.CenterClickTestingProtocol, args=(None, _ports, stim_params))
+
     protocol_thread.start()
 
     behavioral_stimuli.run()
@@ -47,12 +49,11 @@ if __name__ == '__main__':
 
     print(_ports)
 
-    camera_rot = -2
+    camera_rot = -1
     roi = None
     savedir = None
 
-
-    stytra_process = mp.Process(target=Tracking.stytra_container, args=(_ports, roi, savedir))
+    stytra_process = mp.Process(target=Tracking.stytra_container, args=(_ports, camera_rot, roi, savedir))
     stimuli_process = mp.Process(target=stim, args=(_ports,))
 
     stytra_process.start()

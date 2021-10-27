@@ -1566,15 +1566,23 @@ class StimulusSequencing(ShowBase):
 
     def set_binocular(self):
         ### CREATE TEXTURE STAGES ###
-        if isinstance(self.current_stimulus['texture_0'], str):
-            tex_1 = self.textures[self.current_stimulus['texture_0']]
-        else:
-            tex_1 = self.current_stimulus['texture_0']
+        try:
+            if isinstance(self.current_stimulus['texture_0'], str):
+                tex_1 = self.textures[self.current_stimulus['texture_0']]
+            else:
+                tex_1 = self.current_stimulus['texture_0']
+        except Exception as e:
+            print(e, 'using default texture')
+            tex_1 = self.textures[self.default_grating_key]
 
-        if isinstance(self.current_stimulus['texture_1'], str):
-            tex_2 = self.textures[self.current_stimulus['texture_1']]
-        else:
-            tex_2 = self.current_stimulus['texture_1']
+        try:
+            if isinstance(self.current_stimulus['texture_1'], str):
+                tex_2 = self.textures[self.current_stimulus['texture_1']]
+            else:
+                tex_2 = self.current_stimulus['texture_1']
+        except Exception as e:
+            print(e, 'using default texture')
+            tex_2 = self.textures[self.default_grating_key]
 
         tex_1_size = tex_1.texture_size
         tex_2_size = tex_2.texture_size
@@ -1680,6 +1688,13 @@ class StimulusSequencing(ShowBase):
     def move_binocular(self, binocular_move_task):
         if 'stationary_time' not in self.current_stimulus:
             self.current_stimulus['stationary_time'] = [0, 0]
+
+        if isinstance(self.current_stimulus.stationary_time, np.int64):
+            self.current_stimulus.stationary_time = [self.current_stimulus.stationary_time, self.current_stimulus.stationary_time]
+
+        if isinstance(self.current_stimulus.duration, np.int64):
+            self.current_stimulus.duration = [self.current_stimulus.duration, self.current_stimulus.duration]
+
         try:
             if np.isnan(self.current_stimulus['stationary_time']):
                 self.current_stimulus['stationary_time'] = [0,0]

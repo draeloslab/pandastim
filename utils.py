@@ -21,7 +21,7 @@ from pathlib import Path
 
 def port_provider():
     """
-    returns a random free port on PC
+    returns a random local free port on PC
     """
     c = zmq.Context()
     s = c.socket(zmq.SUB)

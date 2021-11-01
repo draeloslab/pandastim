@@ -19,7 +19,7 @@ class CalibrationException(Exception):
 class StimulusCalibrator:
     def __init__(self, camera_img):
 
-        self.camera_img = camera_img - 1
+        self.camera_img = camera_img - 3
         self.projected_pts = self.get_proj_pts()
         self.projected_pts = self.projected_pts[np.argsort(self._find_angles(self.projected_pts)), :]
         self.camera_pts = self._find_triangle(self.camera_img)
@@ -51,7 +51,7 @@ class StimulusCalibrator:
     @staticmethod
     def _find_triangle(image, blob_params=None):
         blob_params = cv2.SimpleBlobDetector_Params()
-        blob_params.maxThreshold = 255;
+        blob_params.maxThreshold = 256;
         if blob_params is None:
             blobdet = cv2.SimpleBlobDetector_create()
         else:
@@ -87,16 +87,16 @@ class StimulusCalibrator:
         return angles
 
 
-def save_params(proj2cam, cam2proj):
+def save_params(proj2cam, cam2proj, rig_number):
     parent_path = Path(sys.executable).parents[0].joinpath(r'Lib\site-packages\pandastim\resources')
-    np.save(parent_path.joinpath('proj2cam.npy'), proj2cam)
-    np.save(parent_path.joinpath('cam2proj.npy'), cam2proj)
+    np.save(parent_path.joinpath(f'rig_{rig_number}_proj2cam.npy'), proj2cam)
+    np.save(parent_path.joinpath(f'rig_{rig_number}_cam2proj.npy'), cam2proj)
 
 
-def load_params():
+def load_params(rig_number):
     parent_path = Path(sys.executable).parents[0].joinpath(r'Lib\site-packages\pandastim\resources')
-    proj2cam = np.load(parent_path.joinpath('proj2cam.npy'))
-    cam2proj = np.load(parent_path.joinpath('cam2proj.npy'))
+    proj2cam = np.load(parent_path.joinpath(f'rig_{rig_number}_proj2cam.npy'))
+    cam2proj = np.load(parent_path.joinpath(f'rig_{rig_number}_cam2proj.npy'))
     return proj2cam, cam2proj
 
 

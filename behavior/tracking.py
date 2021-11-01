@@ -45,17 +45,12 @@ class TimeUpdater(Stimulus):
         # This takes in timing information from external protocol
         self.timing = None
         # initializes with some bogus duration as a buffer
-        self.duration = 300
+        self.duration = 5
 
         # initializes the variables to measure the time
         self.sent_times = [0, 0]
         self.exp_max = 99999999
         self.exp_elapsed = 0
-
-        # this iterator makes it so we don't update every loop, only every so many loops
-        self.iterator = 0
-        self.timing_offset = 0
-        self.fixed_duration = False
 
     # connects to stytra to get the internal experiment parameters from stytra
     def initialise_external(self, experiment):
@@ -73,9 +68,10 @@ class TimeUpdater(Stimulus):
             context = zmq.Context()
             self.timing = context.socket(zmq.SUB)
             self.timing.setsockopt(zmq.SUBSCRIBE, b'time')
-            self.timing.connect(str("tcp://localhost:") + str(time_socket))
+            self.timing.connect("tcp://localhost:" + str(time_socket))
+            print('timing socket connected on ', time_socket)
         except AttributeError:
-            pass
+            print('error initializing timing socket')
 
     def update(self):
 
@@ -92,9 +88,7 @@ class TimeUpdater(Stimulus):
             self.exp_max = self.sent_times[0]
             self.exp_elapsed = self.sent_times[1]
 
-            if not self.fixed_duration:
-                self.duration = np.float64(self.exp_max)
-                self.fixed_duration = True
+            self.duration = np.float64(self.exp_max)
 
         except zmq.Again:
             pass
@@ -102,17 +96,6 @@ class TimeUpdater(Stimulus):
         data = np.array(self._experiment.estimator.get_position())
         self._experiment.pstim_pub.socket.send_string('pos')
         self._experiment.pstim_pub.socket.send_pyobj(data)
-
-        # only update every 50 loop runs, this runs at ~30-40 Hz, hurts performance to do more often
-        self.iterator += 1
-        if self.iterator > 100:
-            time_correction = self._elapsed - self.exp_elapsed - self.timing_offset
-
-            if time_correction <= 0:
-                time_correction = 0
-            self.duration += time_correction
-            self.timing_offset += time_correction
-            self.iterator = 0
 
 
 class StytraDummy(Protocol):
@@ -172,7 +155,7 @@ class ExternalCameraDisplay(CameraViewFish):
             self.centering_socket = self.centering_context.socket(zmq.PUB)
             self.centering_socket.bind(str("tcp://*:") + str(self.centering_socket_number))
 
-    
+
     def center_calibrator(self):
         print('centering')
         topic = 'centering'
@@ -328,7 +311,7 @@ class ExternalTrackingExperiment(TrackingExperiment):
         pass
 
 
-def stytra_container(ports, camera_rot=0, roi=None, savedir=None):
+def stytra_container(ports, camera_rot=0, roi=None, savedir=None,):
     """
     package the stytra classes together and run as a pyqt application
     uses ZMQ sockets to communicate around

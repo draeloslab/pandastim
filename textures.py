@@ -399,6 +399,20 @@ class CalibrationTriangles(TextureBaseXY):
         return np.array([self.pt1, self.pt2, self.pt3])
 
 
+class RadialSinCube(TextureBaseXY):
+    def __init__(self, texture_size=(1024,1024), phase=0, period=32, texture_name='radial_sin_centering'):
+        self.phase = phase
+        self.period = period
+        super().__init__(texture_size=texture_size, texture_name=texture_name)
+
+    def create_texture(self):
+        x = np.linspace(-self.period*np.pi, self.period*np.pi, self.texture_size[0])
+        y = np.linspace(-self.period*np.pi, self.period*np.pi, self.texture_size[1])
+        return np.round((2*np.pi/self.period)*np.sin(np.sqrt(x[None, :]**2 + y[:, None]**2)+self.phase)*127+127).astype(np.uint8)
+
+    def __str__(self):
+        return f"{type(self).__name__} size:{self.texture_size} period:{self.period} phase: {self.phase}"
+
 # %%
 if __name__ == '__main__':
     example = 5

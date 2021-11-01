@@ -114,7 +114,7 @@ class Publisher:
         self.port = port
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.PUB)
-        self.socket.bind(r"tcp://*:" + self.port)
+        self.socket.bind("tcp://*:" + self.port)
 
     def kill(self):
         self.socket.close()
@@ -319,6 +319,17 @@ def get_calibration_params():
     else:
         return None
 
+def create_radial_sin(texture_size):
+    from pandastim import textures
+    stack = []
+    num_slices = 190
+    phase_change = 0.1
+    phase = 0
+    for slice_num in range(num_slices):
+        rad_slice = textures.RadialSinCube(texture_size=texture_size, phase=phase)
+        stack.append(rad_slice)
+        phase += phase_change
+    return stack
 #%%        
 if __name__ == '__main__':
     to_test = 1

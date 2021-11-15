@@ -1,6 +1,6 @@
 from pandastim.behavior import Tracking, Protocol
 from pandastim.utils import port_provider, create_radial_sin
-from pandastim.stimuli import BehavioralStimuli
+from pandastim.stimuli import BehavioralStimuli, Behavior
 
 import multiprocessing as mp
 import threading as tr
@@ -14,7 +14,7 @@ stim_params = {
     'center_x' : 0,
     'center_y' : 0,
     'scale' : 8,
-    'rotation_offset' : 90,
+    'rotation_offset' : -90,
     'center_dot_size' : 25,
     'center_coord' : (484, 522),
     'window_size' : (1024, 1024),
@@ -27,63 +27,22 @@ stim_params = {
     'window_foreground' : True,
     'window_title' : 'Pandastim',
     'profile_on' : False,
+    'projecting_fish' : True,
     'save_path' : r'C:\Users\matt\Data\refactor_test1\four_dpf'
 
 }
-# this is just a small wrapper
-def stim(_ports, rig=1):
-    if stim_params['radial_centering']:
-        behavioral_stimuli = BehavioralStimuli(stimuli=None, defaults=stim_params, rad_stack=create_radial_sin(texture_size=stim_params['window_size']))
-    else:
-        behavioral_stimuli = BehavioralStimuli(stimuli=None, defaults=stim_params, rad_stack=None)
 
-    # the panda3d event handler will not work across processes, but will across threads
-    # protocol_thread = tr.Thread(target=Protocol.BaseProtocol, args=(None, _ports, stim_params))
-    import pandas as pd
 
-    forward = {
-        'stim_name': 'forward',
-        'stim_type': 'b',
-        'velocity': (0.02, 0.02),
-        'angle': (0, 0),
-        'center_width': 12,
-        'stationary_time': 3,
-        'duration': 15,
-    }
-    backward = {
-        'stim_name': 'backward',
-        'stim_type': 'b',
-        'velocity': (0.02, 0.02),
-        'angle': (180, 180),
-        'center_width': 12,
-        'stationary_time': 3,
-        'duration': 15,
-
-    }
-
-    left = {
-        'stim_name': 'left',
-        'stim_type': 'b',
-        'velocity': (0.02, 0.02),
-        'angle': (270, 270),
-        'center_width': 12,
-        'stationary_time': 3,
-        'duration': 15,
-    }
-
-    stims = pd.DataFrame([forward, backward, left])
-
-    thestimuli = pd.concat([stims] * 5)
-    thestimuli.reset_index(inplace=True)
-
-    protocol_thread = tr.Thread(target=Protocol.ClosedLoopProtocol, args=(thestimuli, _ports, stim_params, rig))
+def stimulus(_ports, rig=1):
+    behavioral_stimuli = Behavior(stimuli=None, defaults=stim_params, rad_stack=None)
+    protocol_thread = tr.Thread(target=Protocol.FishTrackerTestingProtocolB, args=(None, _ports, stim_params, rig))
 
     protocol_thread.start()
 
     behavioral_stimuli.run()
 
     protocol_thread.join()
-    print('joined')
+
 
 
 if __name__ == '__main__':
@@ -117,7 +76,7 @@ if __name__ == '__main__':
 
 
     stytra_process = mp.Process(target=Tracking.stytra_container, args=(_ports, camera_rot, roi, savedir))
-    stimuli_process = mp.Process(target=stim, args=(_ports,rig,))
+    stimuli_process = mp.Process(target=stimulus, args=(_ports, rig,))
 
     stytra_process.start()
     stimuli_process.start()

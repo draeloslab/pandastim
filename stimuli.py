@@ -1459,7 +1459,10 @@ class StimulusSequencing(ShowBase):
             self.textures[self.default_grating_key] = self.grating_creator([255, 0, 32, self.default_params['window_size']])
         self.format_window()
 
+        self.projecting_fish_mode = self.default_params['projecting_fish']
+
         self.curr_id = 0
+
 
         if save_path:
             self.filestream = utils.updated_saving(save_path)
@@ -1468,7 +1471,9 @@ class StimulusSequencing(ShowBase):
 
         self.center_x = self.default_params['center_x']
         self.center_y = self.default_params['center_y']
+        self.base_rotation_offset = self.default_params['rotation_offset']
         self.scale = np.sqrt(self.default_params['scale'])
+        self.strip_angle = self.default_params['strip_angle']
 
         self.current_stimulus = None
 
@@ -1523,18 +1528,8 @@ class StimulusSequencing(ShowBase):
             self.current_stimulus['center_width'] = self.default_params['center_width']
         if 'center_x' in self.current_stimulus:
             self.center_x = self.current_stimulus['center_x']
-        else:
-            self.center_x = self.default_params['center_x']
-
         if 'center_y' in self.current_stimulus:
             self.center_y = self.current_stimulus['center_y']
-        else:
-            self.center_y = self.default_params['center_y']
-
-        if 'strip_angle' in self.current_stimulus:
-            self.strip_angle = self.current_stimulus['strip_angle']
-        else:
-            self.strip_angle = self.default_params['center_y']
 
         if self.current_stimulus is None:
             pass
@@ -1560,29 +1555,27 @@ class StimulusSequencing(ShowBase):
         self.card.setTexture(self.texture_stage, self.current_stimulus['texture_0'].texture)
 
         # set tex transforms
-        self.card.setTexRotate(self.texture_stage, self.current_stimulus['angle'] + self.default_params['rotation_offset'])
+        self.card.setTexRotate(self.texture_stage, self.current_stimulus['angle'])
         self.card.setTexPos(self.texture_stage,  self.center_x, self.center_y, 0)
         self.taskMgr.add(self.move_monocular, "move_monocular")
 
     def set_binocular(self):
-        ### CREATE TEXTURE STAGES ###
-        try:
-            if isinstance(self.current_stimulus['texture_0'], str):
-                tex_1 = self.textures[self.current_stimulus['texture_0']]
-            else:
-                tex_1 = self.current_stimulus['texture_0']
-        except Exception as e:
-            print(e, 'using default texture')
-            tex_1 = self.textures[self.default_grating_key]
+        # print(self.current_stimulus)
+        if isinstance(self.current_stimulus.stationary_time, np.int64):
+            self.current_stimulus['stationary_time'] = [self.current_stimulus.stationary_time, self.current_stimulus.stationary_time]
 
-        try:
-            if isinstance(self.current_stimulus['texture_1'], str):
-                tex_2 = self.textures[self.current_stimulus['texture_1']]
-            else:
-                tex_2 = self.current_stimulus['texture_1']
-        except Exception as e:
-            print(e, 'using default texture')
-            tex_2 = self.textures[self.default_grating_key]
+        if isinstance(self.current_stimulus.duration, np.int64):
+            self.current_stimulus['duration'] = [self.current_stimulus.duration, self.current_stimulus.duration]
+        ### CREATE TEXTURE STAGES ###
+        if isinstance(self.current_stimulus['texture_0'], str):
+            tex_1 = self.textures[self.current_stimulus['texture_0']]
+        else:
+            tex_1 = self.current_stimulus['texture_0']
+
+        if isinstance(self.current_stimulus['texture_1'], str):
+            tex_2 = self.textures[self.current_stimulus['texture_1']]
+        else:
+            tex_2 = self.current_stimulus['texture_1']
 
         tex_1_size = tex_1.texture_size
         tex_2_size = tex_2.texture_size
@@ -1614,6 +1607,8 @@ class StimulusSequencing(ShowBase):
         self.right_card.setAttrib(ColorBlendAttrib.make(ColorBlendAttrib.M_add))
 
         ### SET TEXTURES ###
+        if 'center_width' not in self.current_stimulus:
+            self.current_stimulus['center_width'] = self.default_params['center_width']
 
         # CREATE MASK ARRAYS
         self.left_mask_array = 255 * np.ones((tex_1_size[0],
@@ -1625,6 +1620,20 @@ class StimulusSequencing(ShowBase):
                                                tex_2_size[1]), dtype=np.uint8)
         self.right_mask_array[:,
         : (tex_2_size[1] // 2) + self.current_stimulus['center_width'] // 2] = 0
+
+        if self.projecting_fish_mode:
+            ### DANGER ZONE ###
+            half_tex = self.current_stimulus['texture_0'].texture_size[1] // 2
+            ls = [-4, 1, 0, -3]
+            rs = [-1, 4, 0, 3]
+            set_val = 200
+
+            self.left_mask_array[506:515, 511:512] = 120
+            self.right_mask_array[506:515, 512:513] = 120
+            self.left_mask_array[514:516, 510:512] = 255
+            self.right_mask_array[514:516, 512:514] = 255
+            ### END DANGER ZONE ###
+
 
         # ADD TEXTURE STAGES TO CARDS
         self.left_mask.setRamImage(self.left_mask_array)
@@ -1653,8 +1662,8 @@ class StimulusSequencing(ShowBase):
 
         self.mask_transform = self.trs_transform()
 
-        self.left_angle = self.strip_angle + self.current_stimulus['angle'][0] + self.default_params['rotation_offset']
-        self.right_angle = self.strip_angle + self.current_stimulus['angle'][1] + self.default_params['rotation_offset']
+        self.left_angle = self.strip_angle + self.current_stimulus['angle'][0] + self.base_rotation_offset
+        self.right_angle = self.strip_angle + self.current_stimulus['angle'][1] + self.base_rotation_offset
 
         self.left_card.setTexTransform(self.left_mask_stage, self.mask_transform)
         self.right_card.setTexTransform(self.right_mask_stage, self.mask_transform)
@@ -1678,9 +1687,9 @@ class StimulusSequencing(ShowBase):
             self.clear_cards()
             return monocular_move_task.done
         else:
-            new_position = -monocular_move_task.time*self.current_stimulus['velocity'] * 2
+            new_position = -monocular_move_task.time*self.current_stimulus['velocity']
             try:
-                self.card.setTexPos(self.texture_stage, new_position, 0, 0) #u, v, w
+                self.card.setTexPos(self.texture_stage, new_position + self.center_x, self.center_y, 0) #u, v, w
             except Exception as e:
                 print(e, 'error on move_monocular')
         return monocular_move_task.cont
@@ -1688,13 +1697,6 @@ class StimulusSequencing(ShowBase):
     def move_binocular(self, binocular_move_task):
         if 'stationary_time' not in self.current_stimulus:
             self.current_stimulus['stationary_time'] = [0, 0]
-
-        if isinstance(self.current_stimulus.stationary_time, np.int64):
-            self.current_stimulus.stationary_time = [self.current_stimulus.stationary_time, self.current_stimulus.stationary_time]
-
-        if isinstance(self.current_stimulus.duration, np.int64):
-            self.current_stimulus.duration = [self.current_stimulus.duration, self.current_stimulus.duration]
-
         try:
             if np.isnan(self.current_stimulus['stationary_time']):
                 self.current_stimulus['stationary_time'] = [0,0]
@@ -1709,7 +1711,7 @@ class StimulusSequencing(ShowBase):
         elif binocular_move_task.time >= self.current_stimulus['duration'][0]:
             self.left_card.detachNode()
         else:
-            left_tex_position = -binocular_move_task.time * self.current_stimulus['velocity'][0] * 2  # negative b/c texture stage
+            left_tex_position = -binocular_move_task.time * self.current_stimulus['velocity'][0]  # negative b/c texture stage
             try:
                 self.left_card.setTexPos(self.left_texture_stage, left_tex_position, 0, 0)
             except Exception as e:
@@ -1720,7 +1722,7 @@ class StimulusSequencing(ShowBase):
         elif binocular_move_task.time >= self.current_stimulus['duration'][1]:
             self.right_card.detachNode()
         else:
-            right_tex_position = -binocular_move_task.time * self.current_stimulus['velocity'][1] * 2  # negative b/c texture stage
+            right_tex_position = -binocular_move_task.time * self.current_stimulus['velocity'][1]   # negative b/c texture stage
             try:
                 self.right_card.setTexPos(self.right_texture_stage, right_tex_position, 0, 0)
             except Exception as e:
@@ -1756,14 +1758,39 @@ class StimulusSequencing(ShowBase):
         """
 
         ## highly recommend not monkeying with this too much
+        # print([self.center_x, self.center_y], [self.bin_center_x, self.bin_center_y])
+        self.bin_center_x = 1 * self.center_y * self.scale
+        self.bin_center_y = -1 * self.center_x * self.scale
 
-        self.mask_position_uv = (self.center_x, self.center_y)
+        self.mask_position_uv = (self.bin_center_x, self.bin_center_y)
+
         pos = 0.5 + self.mask_position_uv[0], 0.5 + self.mask_position_uv[1]
         center_shift = TransformState.make_pos2d((-pos[0], -pos[1]))
         scale = TransformState.make_scale2d(1 / self.scale)
         rotate = TransformState.make_rotate2d(self.strip_angle)
         translate = TransformState.make_pos2d((0.5, 0.5))
+
         return translate.compose(rotate.compose(scale.compose(center_shift)))
+
+    def set_transforms(self):
+        if self.current_stimulus['stim_type'] == 'b':
+            self.mask_transform = self.trs_transform()
+
+            self.left_angle = self.strip_angle + self.current_stimulus['angle'][0] + self.base_rotation_offset
+            self.right_angle = self.strip_angle + self.current_stimulus['angle'][1] + self.base_rotation_offset
+
+            self.left_card.setTexTransform(self.left_mask_stage, self.mask_transform)
+            self.right_card.setTexTransform(self.right_mask_stage, self.mask_transform)
+            # Left texture
+            self.left_card.setTexScale(self.left_texture_stage, 1 / self.scale)
+            self.left_card.setTexRotate(self.left_texture_stage, self.left_angle)
+
+            # Right texture
+            self.right_card.setTexScale(self.right_texture_stage, 1 / self.scale)
+            self.right_card.setTexRotate(self.right_texture_stage, self.right_angle)
+        if self.current_stimulus['stim_type'] == 's':
+            self.card.setTexRotate(self.texture_stage, self.current_stimulus['angle'] + self.base_rotation_offset)
+            self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0)
 
     def save(self):
         if self.filestream:
@@ -1918,43 +1945,21 @@ class MonocularImprov(StimulusSequencing):
         return monocular_move_task.cont
 
 
-class BehavioralStimuli(StimulusSequencing):
-    def __init__(self, stimuli, *args, **kwargs):
-        super().__init__(stimuli, *args, **kwargs)
+class Behavior(StimulusSequencing):
+    def __init__(self, stimuli, rad_stack, *args, **kwargs):
+        super().__init__(stimuli,*args, **kwargs)
 
-        self.textures['centering_dot'] = textures.CircleGrayTex(circle_radius=self.default_params['center_dot_size'], texture_size=self.default_params['window_size'][0])
+        self.strip_angle = 0
+        self.bin_center_x, self.bin_center_y = (0,0)
+
+        self.textures['centering_dot'] = textures.CircleGrayTex(circle_radius=self.default_params['center_dot_size'],
+                                                                texture_size=self.default_params['window_size'][0])
+        self.textures['radial_sin'] = rad_stack
 
         self.accept("stimulus", self.change_stimulus, [])
         self.accept("stimulus_update", self.update_stimulus, [])
         self.accept("calibration_stimulus", self.calibration_stimulus, [])
-
-        self.accept('2', self.matt_accept2)
-        self.accept('4', self.matt_accept4)
-        self.accept('5', self.matt_accept5)
-        self.accept('6', self.matt_accept6)
-        self.accept('8', self.matt_accept8)
-
-    def matt_accept2(self):
-        self.center_y -= 0.01
-        self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0)
-        print(f'set to {self.center_x} {self.center_y}')
-    def matt_accept4(self):
-        self.center_x -= 0.01
-        self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0)
-        print(f'set to {self.center_x} {self.center_y}')
-    def matt_accept5(self):
-        self.center_x, self.center_y = [0,0]
-        self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0)
-        print(f'set to {self.center_x} {self.center_y}')
-    def matt_accept6(self):
-        self.center_x += 0.01
-        self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0)
-        print(f'set to {self.center_x} {self.center_y}')
-    def matt_accept8(self):
-        self.center_y += 0.01
-        self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0)
-        print(f'set to {self.center_x} {self.center_y}')
-
+        self.accept('end_experiment', self.end_experiment)
 
     def calibration_stimulus(self, toggle):
         if toggle is False:
@@ -1972,23 +1977,30 @@ class BehavioralStimuli(StimulusSequencing):
             self.current_stimulus = {'texture_0' : self.textures['calibration'], 'velocity' : 0, 'angle' : 0}
             self.set_monocular()
 
-    def update_stimulus(self, data):
-        x, y = data
-        self.center_x = x
-        self.center_y = y
-        print(f'moved to {data}')
-        # self.card.setTexPos(self.texture_stage,  self.center_x, self.center_y, 0)
-        try:
-            self.card.setTexPos(self.texture_stage,  self.center_x, self.center_y, 0)
-        except:
-            print('no card exists')
-
     def change_stimulus(self, new_stimulus):
         self.curr_id, self.current_stimulus = new_stimulus
         print(self.current_stimulus)
         self.clear_cards()
         self.set_stimulus()
-        print('checking here', self.center_x)
+
+    def update_stimulus(self, data):
+        if self.current_stimulus is not None:
+            if len(data) == 1:
+                # this is theta
+                self.theta = data
+                self.strip_angle = self.theta + self.base_rotation_offset
+                self.set_transforms()
+
+            elif len(data) == 2:
+                # this is X, Y
+                self.center_x, self.center_y = data
+                self.set_transforms()
+
+            elif len(data) == 3:
+                # this is X, Y, Theta
+                self.center_x, self.center_y, self.theta = data
+                self.strip_angle = self.theta + self.base_rotation_offset
+                self.set_transforms()
 
     def set_stimulus(self):
         if self.current_stimulus is None:
@@ -2001,6 +2013,11 @@ class BehavioralStimuli(StimulusSequencing):
                 if _key not in self.textures:
                     self.textures[_key] = self.grating_creator(_params)
                 self.current_stimulus['texture_0'] = self.textures[_key]
+
+            if 'center_x' in self.current_stimulus:
+                self.center_x = self.current_stimulus['center_x']
+            if 'center_y' in self.current_stimulus:
+                self.center_y = self.current_stimulus['center_y']
 
             self.set_monocular()
         elif self.current_stimulus['stim_type'] == 'b':
@@ -2019,17 +2036,246 @@ class BehavioralStimuli(StimulusSequencing):
         elif self.current_stimulus['stim_type'] == 'centering':
             self.run_centering()
 
-    def run_centering(self):
-        if self.current_stimulus['type'] == 'radial':
-            # probably a zarr of the radial, take a slice at a time
-            pass
+    @staticmethod
+    def end_experiment():
+        sys.exit()
+
+
+class BehavioralStimuliTesting(StimulusSequencing):
+    def __init__(self, stimuli, rad_stack, *args, **kwargs):
+        super().__init__(stimuli,*args, **kwargs)
+
+        self.strip_angle = 0
+        self.bin_center_x, self.bin_center_y = (0,0)
+
+        self.textures['centering_dot'] = textures.CircleGrayTex(circle_radius=self.default_params['center_dot_size'],
+                                                                texture_size=self.default_params['window_size'][0])
+        self.textures['radial_sin'] = rad_stack
+
+        self.accept("stimulus", self.change_stimulus, [])
+        self.accept("stimulus_update", self.update_stimulus, [])
+        self.accept("calibration_stimulus", self.calibration_stimulus, [])
+        self.accept('end_experiment', self.end_experiment)
+
+        self.accept('4', self.stuffAndThings, ['4'])
+        self.accept('5', self.stuffAndThings, ['5'])
+        self.accept('6', self.stuffAndThings, ['6'])
+        self.accept('7', self.stuffAndThings, ['7'])
+        self.accept('8', self.stuffAndThings, ['8'])
+        self.accept('9', self.stuffAndThings, ['9'])
+
+        self.accept('0', self.stuffAndThings, ['0'])
+        self.accept('1', self.stuffAndThings, ['1'])
+
+
+    def stuffAndThings(self, data):
+        if data == '4':
+            self.bin_center_x -= 0.05
+        if data == '5':
+            self.bin_center_x = -1 * self.center_x * self.scale
+        if data == '6':
+            self.bin_center_x += 0.05
+        if data == '7':
+            self.bin_center_y -= 0.05
+        if data == '8':
+            self.bin_center_y = -1 * self.center_y * self.scale
+        if data == '9':
+            self.bin_center_y += 0.05
+        if data == '0':
+            self.base_rotation_offset += 90
+        if data == '1':
+            self.base_rotation_offset -= 90
+        print(self.bin_center_x, self.bin_center_y, self.base_rotation_offset)
+        self.clear_cards()
+        self.set_stimulus()
+
+    def end_experiment(self):
+        sys.exit()
+
+    def calibration_stimulus(self, toggle):
+        if toggle is False:
+            self.current_stimulus = None
+            self.clear_cards()
         else:
-            ## do the static circle
-            self.current_stimulus = {'texture_0' : self.textures['centering_dot'], 'velocity' : 0, 'angle' : 0}
+            cali_params = utils.get_calibration_params()
+            if cali_params is None:
+                self.textures['calibration'] = textures.CalibrationTriangles()
+            else:
+                self.textures['calibration'] = textures.CalibrationTriangles(tri_size=cali_params['tri_size'],
+                                                circle_radius=cali_params['circle_radius'],
+                                                x_off=cali_params['x_off'],
+                                                y_off=cali_params['y_off'])
+            self.current_stimulus = {'texture_0' : self.textures['calibration'], 'velocity' : 0, 'angle' : 0}
             self.set_monocular()
 
-    def move_monocular(self, task):
-        pass
+    def update_stimulus(self, data):
+        # print(type(data), type(data[0]))
+        # print(f'moved {data}')
+
+        if isinstance(data, list):
+            x, y, theta = data
+            self.center_x = x
+            self.center_y = y
+            # self.set_transforms()
+
+            self.theta = theta
+            self.strip_angle = self.theta + self.base_rotation_offset
+
+            try:
+                self.card.setTexPos(self.texture_stage,  self.center_x, self.center_y, 0)
+                self.card.setTexRotate(self.texture_stage, self.current_stimulus['angle'] + self.theta + self.base_rotation_offset)
+            except Exception as e:
+                binocd = False
+                try:
+                    self.mask_transform = self.trs_transform()
+
+                    self.left_angle = self.strip_angle + self.current_stimulus['angle'][0] + self.base_rotation_offset
+                    self.right_angle = self.strip_angle + self.current_stimulus['angle'][1] + self.base_rotation_offset
+
+                    self.left_card.setTexTransform(self.left_mask_stage, self.mask_transform)
+                    self.right_card.setTexTransform(self.right_mask_stage, self.mask_transform)
+
+                    self.left_card.setTexScale(self.left_mask_stage, 1 / self.scale)
+                    self.right_card.setTexScale(self.right_mask_stage, 1 / self.scale)
+
+                    # Left texture
+                    self.left_card.setTexRotate(self.left_texture_stage, self.left_angle)
+
+                    # Right texture
+                    self.right_card.setTexRotate(self.right_texture_stage, self.right_angle)
+                    binocd = True
+
+                except Exception as e1:
+                    print('failed to binoc', e1)
+
+                if not binocd:
+                    print('failed here', e)
+
+
+        elif isinstance(data, float):
+            self.theta = data
+            self.strip_angle = self.theta + self.base_rotation_offset
+
+            try:
+                # print(self.current_stimulus['angle'],  self.base_rotation_offset,  self.theta)
+                self.card.setTexRotate(self.texture_stage,
+                                   self.current_stimulus['angle'] + self.theta)
+            except Exception as e:
+                binocd = False
+
+                try:
+                    self.left_angle = self.strip_angle + self.current_stimulus['angle'][0] + self.base_rotation_offset
+                    self.right_angle = self.strip_angle + self.current_stimulus['angle'][1]+ self.base_rotation_offset
+
+                    self.left_card.setTexScale(self.left_mask_stage, 1 / self.scale)
+                    self.right_card.setTexScale(self.right_mask_stage, 1 / self.scale)
+                    self.left_card.setTexRotate(self.left_texture_stage, self.left_angle )
+                    self.right_card.setTexRotate(self.right_texture_stage, self.right_angle)
+                    binocd = True
+                except Exception as e1:
+                    print('failed to binoc')
+                if not binocd:
+                    print('failed there', e)
+
+        elif isinstance(data, tuple):
+            self.center_x, self.center_y = data
+            self.bin_center_x = self.center_x
+            self.bin_center_y = self.center_y
+            try:
+                self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0)
+            except Exception as e:
+                binocd = False
+                try:
+                    self.mask_transform = self.trs_transform()
+
+                    self.left_card.setTexTransform(self.left_mask_stage, self.mask_transform)
+                    self.right_card.setTexTransform(self.right_mask_stage, self.mask_transform)
+
+                    self.left_card.setTexScale(self.left_mask_stage, 1 / self.scale)
+                    self.right_card.setTexScale(self.right_mask_stage, 1 / self.scale)
+
+                    binocd = True
+                except Exception as e1:
+                    print('failed to binoc')
+                if not binocd:
+                    print('failed around the square', e)
+
+    def change_stimulus(self, new_stimulus):
+        self.curr_id, self.current_stimulus = new_stimulus
+        print(self.current_stimulus)
+        self.clear_cards()
+        self.set_stimulus()
+
+    def set_stimulus(self):
+        if self.current_stimulus is None:
+            pass
+        elif self.current_stimulus['stim_type'] == 's':
+            if 'texture' in self.current_stimulus:
+                self.current_stimulus['texture_0'] = self.current_stimulus['texture']
+            else:
+                _key, _params = self.grating_key_creator(self.current_stimulus, self.default_params)
+                if _key not in self.textures:
+                    self.textures[_key] = self.grating_creator(_params)
+                self.current_stimulus['texture_0'] = self.textures[_key]
+
+            if 'center_x' in self.current_stimulus:
+                self.center_x = self.current_stimulus['center_x']
+            if 'center_y' in self.current_stimulus:
+                self.center_y = self.current_stimulus['center_y']
+
+            self.set_monocular()
+        elif self.current_stimulus['stim_type'] == 'b':
+            if 'texture' in self.current_stimulus:
+                self.current_stimulus['texture_0'] = self.current_stimulus['texture'][0]
+                self.current_stimulus['texture_1'] = self.current_stimulus['texture'][1]
+            else:
+                keys, params = self.grating_key_creator(self.current_stimulus, self.default_params, True)
+                for n in range(len(keys)):
+                    if keys[n] not in self.textures:
+                        self.textures[keys[n]] = self.grating_creator(params[n])
+                self.current_stimulus['texture_0'] = self.textures[keys[0]]
+                self.current_stimulus['texture_1'] = self.textures[keys[1]]
+
+
+            if 'center_x' in self.current_stimulus:
+                self.center_x = self.current_stimulus['center_x']
+            if 'center_y' in self.current_stimulus:
+                self.center_y = self.current_stimulus['center_y']
+
+            self.bin_center_x = -1 * self.center_y * self.scale
+            self.bin_center_y = -1 * self.center_x * self.scale
+
+            self.set_binocular()
+        elif self.current_stimulus['stim_type'] == 'centering':
+            self.run_centering()
+
+    def run_centering(self):
+        if self.current_stimulus['type'] == 'radial':
+            self.radial_index = 0
+            self.center_x = self.current_stimulus['center_x']
+            self.center_y = self.current_stimulus['center_y']
+            self.taskMgr.add(self.run_radial, "run_radial")
+        else:
+            ## do the static circle
+            self.current_stimulus['texture_0'] = self.textures['centering_dot']
+            self.center_x = self.current_stimulus['center_x']
+            self.center_y = self.current_stimulus['center_y']
+            self.set_monocular()
+
+    def run_radial(self, radial_task):
+        super().clear_cards()
+        self.current_stimulus['texture_0'] = self.textures['radial_sin'][self.radial_index]
+        self.radial_index += 1
+        if self.radial_index == len(self.textures['radial_sin']):
+            self.radial_index = 0
+
+        self.set_monocular()
+        return radial_task.cont
+
+    def clear_cards(self):
+        super().clear_cards()
+        self.taskMgr.remove("run_radial")
+
 
 class KeyboardToggleTex(ShowBase):
     """

@@ -21,7 +21,7 @@ from pathlib import Path
 
 def port_provider():
     """
-    returns a random local free port on PC
+    returns a random free port on PC
     """
     c = zmq.Context()
     s = c.socket(zmq.SUB)
@@ -307,8 +307,15 @@ def reduce_to_pi(ar):
 def angle_mean(angles, axis=0):
     """Correct calculation of a mean of an array of angles
     """
-    return np.arctan2(np.sum(np.sin(angles), axis), np.sum(np.cos(angles), axis))
+    return np.arctan2(np.nansum(np.sin(angles), axis), np.nansum(np.cos(angles), axis))
 
+
+def angle_diff(a1, a2):
+    '''
+    correct calculaion of difference of two angles (radians)
+    '''
+    from math import tau
+    return min(a2-a1, a2-a1+tau, a2-a1-tau, key=abs)
 
 def get_calibration_params():
     param_path = Path(sys.executable).parents[0].joinpath(r'Lib\site-packages\pandastim\resources\caliparams.json')

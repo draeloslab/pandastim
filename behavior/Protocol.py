@@ -51,6 +51,9 @@ class BaseProtocol(DirectObject.DirectObject):
 
         self.cam_outputs_thread.start()
 
+        self.t_update_frequency = 1
+        self.last_t_update = 0
+
         try:
             self.proj2cam, self.cam2proj = calibration.load_params(self.rig_number)
         except FileNotFoundError:
@@ -178,6 +181,7 @@ class BaseProtocol(DirectObject.DirectObject):
     def stim_sequencer(self):
         pass
 
+
 class CenterClickTestingProtocol(BaseProtocol):
     '''
     this testing protocol lets you click to move a circle to your click point
@@ -189,9 +193,9 @@ class CenterClickTestingProtocol(BaseProtocol):
 
     def run_experiment(self):
         super().run_experiment()
-        stim = [0,
-                {'stim_type' : 's', 'velocity' : 0, 'angle' : 0, 'texture' : textures.CircleGrayTex(circle_radius=3),
-                 }]
+        import pandas as pd
+        # stim = [0, pd.DataFrame({'stim_type': ['b'], 'velocity': [[-0.01, -0.01]], 'angle': [[0, 0]], 'stationary_time': [[0, 0]],'duration': [[9999, 9999]]}).loc[0]]
+        stim = [0, {'stim_type' : 's', 'velocity' : 0, 'angle' : 0, 'texture' : textures.CircleGrayTex(circle_radius=3, texture_size=self.defaults['window_size'][0]), }]
         messenger.send('stimulus', [stim])
         self.show_tracking()
 
@@ -205,7 +209,15 @@ class CenterClickTestingProtocol(BaseProtocol):
         if self.x != self.centered_pt[0] and self.y != self.centered_pt[1]:
             self.x, self.y = self.centered_pt
             x,y = self.position_transformer(self.x, self.y)
-            messenger.send('stimulus_update', [[x, y]])
+            messenger.send('stimulus_update', [[x, y, 0]])
+
+        curr_t = time.time()
+        if curr_t - self.last_t_update >= self.t_update_frequency:
+
+            self.timing_comm.socket.send_string('time', zmq.SNDMORE)
+            self.timing_comm.socket.send_pyobj(
+                    [(curr_t - self.init_time) + 3 , (curr_t - self.init_time)])
+            self.last_t_update = curr_t
 
 
 class FishTrackerTestingProtocol(CenterClickTestingProtocol):
@@ -221,6 +233,56 @@ class FishTrackerTestingProtocol(CenterClickTestingProtocol):
             _y = self.data[0]
             x, y = self.position_transformer(_x, _y)
             messenger.send('stimulus_update', [[x, y, 0]])
+
+        curr_t = time.time()
+        if curr_t - self.last_t_update >= self.t_update_frequency:
+
+            self.timing_comm.socket.send_string('time', zmq.SNDMORE)
+            self.timing_comm.socket.send_pyobj(
+                    [(curr_t - self.init_time) + 3 , (curr_t - self.init_time)])
+            self.last_t_update = curr_t
+
+
+class FishTrackerTestingProtocolB(BaseProtocol):
+    '''
+    this one moves a binoc thing around under the fish
+    '''
+    def __init__(self, *args, **kwargs):
+        self.last_stim = 9
+        self.x, self.y = [0,0]
+        super().__init__(*args, **kwargs)
+
+    def run_experiment(self):
+        super().run_experiment()
+        ## THIS IS WHERE WE SHOW SOME SUPER SPICEY BINOCULAR THING ##
+        import pandas as pd
+
+        ourstim =  pd.DataFrame({'stim_type' : ['b'], 'velocity' : [[0.02, 0.02]], 'angle' : [[0,0]], 'stationary_time' : [[0,0]], 'duration' : [[9999, 9999]]}).loc[0]
+        # ourstim = {'stim_type' : ['b'], 'velocity' : [[0,0]], 'angle' : [[0,0]], 'stationary_time' : [[0,0]], 'duration' : [[99, 99]]}
+        stim = [0,ourstim]
+        messenger.send('stimulus', [stim])
+        self.show_tracking()
+
+    def position_receiver(self):
+        while self.experiment_running:
+            topic = self.position_comm.socket.recv_string()
+            self.data = self.position_comm.socket.recv_pyobj()
+            self.show_tracking()
+
+    def show_tracking(self):
+        if not np.isnan(self.data[0]):
+            _x = self.data[1]
+            _y = self.data[0]
+            x, y = self.position_transformer(_x, _y)
+            messenger.send('stimulus_update', [[x, y, degrees(self.data[2])]])
+
+        curr_t = time.time()
+        if curr_t - self.last_t_update >= self.t_update_frequency:
+
+            self.timing_comm.socket.send_string('time', zmq.SNDMORE)
+            self.timing_comm.socket.send_pyobj(
+                    [(curr_t - self.init_time) + 3 , (curr_t - self.init_time)])
+            self.last_t_update = curr_t
 
 
 class OpenLoopProtocol(BaseProtocol):
@@ -279,7 +341,7 @@ class ClosedLoopProtocol(BaseProtocol):
         # units in camera XY pixels fish must be within center to trigger a trial
         self.min_fish_dst_to_center = self.defaults['min_fish_dst_to_center']
         self.xy_thresh = 35
-        self.theta_thresh = 8.5
+        self.theta_thresh = 6.5
 
         self.last_t_update = 0
         self.last_message = None
@@ -352,7 +414,7 @@ class ClosedLoopProtocol(BaseProtocol):
     def stim_sequencer(self):
         # This is called every time new data arrives
 
-        if time.time() - self.last_fish_present >= self.missing_fish_t or np.sum(np.isnan(np.array(self.fish_data)[:, 0][-20:])) >= 7: ##FISH LESS THAN 5 FRAMES:
+        if time.time() - self.last_fish_present >= self.missing_fish_t or np.sum(np.isnan(np.array(self.fish_data)[:, 0][-20:])) >= 7: ##FISH LESS THAN 20 - 7 FRAMES:
             # RECENTER THE FISH #
             if self.last_message != f"centering_at_{self.centered_pt}":
                 self.send_centering()
@@ -370,7 +432,7 @@ class ClosedLoopProtocol(BaseProtocol):
 
             self.theta = data[:, 2][~np.isnan(data[:, 2])]
 
-            dst_center = np.linalg.norm(np.array([self._x[-1], self._y[-1]]) - np.array(self.centered_pt))
+            dst_center = np.linalg.norm(np.array([self._y[-1], self._x[-1]]) - np.array(self.centered_pt))
             # print(dst_center, self.stimulating)
 
             if not dst_center <= self.min_fish_dst_to_center and not self.stimulating:
@@ -394,8 +456,8 @@ class ClosedLoopProtocol(BaseProtocol):
 
                     messenger.send('stimulus', [[self.current_stim_id, self.current_stim]])
                     x, y = self.position_transformer(self._y[-1], self._x[-1])
-                    theta = degrees(utils.reduce_to_pi(np.nanmean(self.theta[-5:])))
-                    messenger.send('stimulus_update', [[x, y, theta]])
+                    theta = utils.angle_mean(utils.reduce_to_pi(self.theta[-5:]))
+                    messenger.send('stimulus_update', [[x, y, degrees(theta)]])
                     self.last_update_time = time.time()
                     # self.save([self.current_stim_id, self.current_stim], self._x[-1], self._y[-1], self.theta[-1])
 
@@ -404,18 +466,20 @@ class ClosedLoopProtocol(BaseProtocol):
                     self.stimulating = True
                     self.stim_start = time.time()
 
-                if self.stimulating and time.time() - self.stim_start <= self.current_stim.duration:
+                if self.stimulating and time.time() - self.stim_start <= np.max(self.current_stim.duration):
                     # this is where we'll do the updating of xytheta
                     XCHECK = abs(np.nanmean(self._x[-30:]) - self._x[-1]) >= self.xy_thresh
                     YCHECK = abs(np.nanmean(self._y[-30:]) - self._y[-1]) >= self.xy_thresh
                     XYCHECK = (XCHECK or YCHECK) and not self.current_stim.stim_type == 's'
 
-                    THETACHECK = (abs(np.nanmean(self.theta[-30:]) - np.nanmean(self.theta[-5:])) / abs(np.nanmean(self.theta[-8:]))) * 100 >= self.theta_thresh
+                    # THETACHECK = (abs(np.nanmean(self.theta[-30:]) - np.nanmean(self.theta[-5:])) / abs(np.nanmean(self.theta[-8:]))) * 100 >= self.theta_thresh
+                    THETACHECK = abs(utils.angle_diff(np.nanmean(self.theta[-30:]), np.nanmean(self.theta[-5:]))) >= radians(self.theta_thresh)
+
                     # print('THETA ', THETACHECK , (abs(np.nanmean(self.theta[-30:]) - self.theta[-1]) / abs(self.theta[-1])) * 100)
                     if time.time() - self.last_update_time >= 0.1:
                         if XYCHECK and THETACHECK:
                             x, y = self.position_transformer(self._y[-1], self._x[-1])
-                            theta = degrees(utils.reduce_to_pi(np.nanmean(self.theta[-8:])))
+                            theta = degrees(utils.angle_mean(utils.reduce_to_pi((self.theta[-3:]))))
                             messenger.send('stimulus_update', [[x, y, theta]])
                             # self.save([self.current_stim_id, self.current_stim], self._x[-1], self._y[-1], self.theta[-1])
 
@@ -428,7 +492,7 @@ class ClosedLoopProtocol(BaseProtocol):
                             self.last_update_time = time.time()
 
                         elif THETACHECK:
-                            theta = degrees(utils.reduce_to_pi(np.nanmean(self.theta[-8:])))
+                            theta = degrees(utils.angle_mean(utils.reduce_to_pi((self.theta[-3:]))))
                             messenger.send('stimulus_update', [theta])
                             # self.save([self.current_stim_id, self.current_stim], self._x[-1], self._y[-1], self.theta[-1])
                             self.last_update_time = time.time()

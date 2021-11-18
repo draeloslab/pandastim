@@ -1,2 +1,16 @@
 
 behavior/__pycache__/
+
+__pycache__/
+
+resources/cam2proj.npy
+
+resources/portNumber.dat
+
+resources/proj2cam.npy
+
+resources/rig_2_cam2proj.npy
+
+resources/rig_2_proj2cam.npy
+
+resources/rig2.json

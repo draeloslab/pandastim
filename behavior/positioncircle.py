@@ -28,21 +28,21 @@ stim_params = {
     'window_title' : 'Pandastim',
     'profile_on' : False,
     'projecting_fish' : True,
-    'save_path' : r'C:\Users\matt\Data\refactor_test1\four_dpf'
+    'save_path' : r'C:\Users\matt\Data\refactor_test1\four_dpf',
+    'rig_number' : 2
 
 }
 
 
 def stimulus(_ports, rig=1):
     behavioral_stimuli = Behavior(stimuli=None, defaults=stim_params, rad_stack=None)
-    protocol_thread = tr.Thread(target=Protocol.FishTrackerTestingProtocolB, args=(None, _ports, stim_params, rig))
+    protocol_thread = tr.Thread(target=Protocol.CenterClickTestingProtocol, args=(None, _ports, stim_params))
 
     protocol_thread.start()
 
     behavioral_stimuli.run()
 
     protocol_thread.join()
-
 
 
 if __name__ == '__main__':

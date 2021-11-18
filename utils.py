@@ -317,6 +317,7 @@ def angle_diff(a1, a2):
     from math import tau
     return min(a2-a1, a2-a1+tau, a2-a1-tau, key=abs)
 
+
 def get_calibration_params():
     param_path = Path(sys.executable).parents[0].joinpath(r'Lib\site-packages\pandastim\resources\caliparams.json')
     if os.path.exists(param_path):
@@ -325,6 +326,13 @@ def get_calibration_params():
         return data
     else:
         return None
+
+
+def load_params(param_path):
+    with open(param_path) as json_file:
+        data = json.load(json_file)
+    return data
+
 
 def create_radial_sin(texture_size):
     from pandastim import textures

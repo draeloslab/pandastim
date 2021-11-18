@@ -7,6 +7,9 @@ Part of pandastim package: https://github.com/EricThomson/pandastim
 """
 from pandastim import utils, textures
 
+import pandas as pd
+pd.set_option('mode.chained_assignment', None)
+
 import sys
 import numpy as np
 import logging
@@ -1454,9 +1457,9 @@ class StimulusSequencing(ShowBase):
         # if we got textures, add them to the dic
         if self.stimuli is not None and 'texture' in self.stimuli.columns:
             self.extract_texture_from_df()
-        self.default_grating_key = '255_0_32'
+        self.default_grating_key = '255_0_60'
         if self.default_grating_key not in self.textures:
-            self.textures[self.default_grating_key] = self.grating_creator([255, 0, 32, self.default_params['window_size']])
+            self.textures[self.default_grating_key] = self.grating_creator([255, 0, 60, self.default_params['window_size']])
         self.format_window()
 
         self.projecting_fish_mode = self.default_params['projecting_fish']
@@ -1555,12 +1558,14 @@ class StimulusSequencing(ShowBase):
         self.card.setTexture(self.texture_stage, self.current_stimulus['texture_0'].texture)
 
         # set tex transforms
-        self.card.setTexRotate(self.texture_stage, self.current_stimulus['angle'])
+        self.card.setTexRotate(self.texture_stage, self.current_stimulus['angle'] + self.base_rotation_offset)
         self.card.setTexPos(self.texture_stage,  self.center_x, self.center_y, 0)
         self.taskMgr.add(self.move_monocular, "move_monocular")
 
     def set_binocular(self):
         # print(self.current_stimulus)
+        if 'stationary_time' not in self.current_stimulus:
+            self.current_stimulus['stationary_time'] = [3,3]
         if isinstance(self.current_stimulus.stationary_time, np.int64):
             self.current_stimulus['stationary_time'] = [self.current_stimulus.stationary_time, self.current_stimulus.stationary_time]
 
@@ -1789,7 +1794,7 @@ class StimulusSequencing(ShowBase):
             self.right_card.setTexScale(self.right_texture_stage, 1 / self.scale)
             self.right_card.setTexRotate(self.right_texture_stage, self.right_angle)
         if self.current_stimulus['stim_type'] == 's':
-            self.card.setTexRotate(self.texture_stage, self.current_stimulus['angle'] + self.base_rotation_offset)
+            self.card.setTexRotate(self.texture_stage, self.current_stimulus['angle'] + self.strip_angle)
             self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0)
 
     def save(self):
@@ -1978,16 +1983,16 @@ class Behavior(StimulusSequencing):
             self.set_monocular()
 
     def change_stimulus(self, new_stimulus):
+        self.clear_cards()
         self.curr_id, self.current_stimulus = new_stimulus
         print(self.current_stimulus)
-        self.clear_cards()
         self.set_stimulus()
 
     def update_stimulus(self, data):
         if self.current_stimulus is not None:
             if len(data) == 1:
                 # this is theta
-                self.theta = data
+                self.theta = data[0]
                 self.strip_angle = self.theta + self.base_rotation_offset
                 self.set_transforms()
 
@@ -2036,12 +2041,46 @@ class Behavior(StimulusSequencing):
         elif self.current_stimulus['stim_type'] == 'centering':
             self.run_centering()
 
-    @staticmethod
-    def end_experiment():
+    def run_centering(self):
+        if self.current_stimulus['type'] == 'radial':
+            self.radial_index = 0
+
+            self.center_x = self.current_stimulus['center_x']
+            self.center_y = self.current_stimulus['center_y']
+            self.strip_angle = self.base_rotation_offset
+
+            self.taskMgr.add(self.run_radial, "run_radial")
+        else:
+            ## do the static circle
+            self.current_stimulus['texture_0'] = self.textures['centering_dot']
+
+            self.center_x = self.current_stimulus['center_x']
+            self.center_y = self.current_stimulus['center_y']
+            self.strip_angle = self.base_rotation_offset
+
+            self.set_monocular()
+
+    def run_radial(self, radial_task):
+        super().clear_cards()
+        self.current_stimulus['texture_0'] = self.textures['radial_sin'][self.radial_index]
+        self.radial_index += 1
+        if self.radial_index == len(self.textures['radial_sin']):
+            self.radial_index = 0
+
+        self.set_monocular()
+        return radial_task.cont
+
+    def clear_cards(self):
+        self.taskMgr.remove("run_radial")
+
+        super().clear_cards()
+
+    def end_experiment(self):
+        self.clear_cards()
         sys.exit()
 
 
-class BehavioralStimuliTesting(StimulusSequencing):
+class BehavioralStimuli(StimulusSequencing):
     def __init__(self, stimuli, rad_stack, *args, **kwargs):
         super().__init__(stimuli,*args, **kwargs)
 

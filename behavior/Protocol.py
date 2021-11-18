@@ -4,7 +4,6 @@ from direct.showbase.MessengerGlobal import messenger
 from pandastim import utils, textures
 from pandastim.behavior import calibration
 
-from scipy.signal.signaltools import wiener
 from math import radians, degrees
 
 import sys
@@ -17,12 +16,43 @@ import numpy as np
 import pygetwindow as gw
 
 
+def wrapper(protocol, stimuli, stimulus_dataframe_path, ports, params):
+    """
+    :param protocol: a protocol class
+    :param stimuli:  a stimulus class
+    :param stimulus_dataframe_path: path to an hdf that contains stimulus information
+    :param ports: ports formatted in a key: port manner for the ports required for bhvr & stim comms
+    :param params: json file with all the stuff and the things
+    """
+
+    if params['radial_centering']:
+        radStack = utils.create_radial_sin(texture_size=params['window_size'])
+    else:
+        radStack = None
+
+    behavioral_stimuli = stimuli(stimuli=None, defaults=params, rad_stack=radStack)
+
+    import pandas as pd
+    stimulus_dataframe = pd.read_hdf(stimulus_dataframe_path)
+
+    inds = stimulus_dataframe[stimulus_dataframe.stim_type=='s'].index
+
+    stimulus_dataframe.loc[inds, 'angle'] += params['rotation_offset']
+
+    # stimulus_dataframe = stimulus_dataframe[stimulus_dataframe.stim_name.isin(['lateral_right', 'lateral_left'])]
+
+    protocol_thread = tr.Thread(target=protocol, args=(stimulus_dataframe, ports, params))
+    protocol_thread.start()
+    behavioral_stimuli.run()
+    protocol_thread.join()
+
+
 class BaseProtocol(DirectObject.DirectObject):
-    def __init__(self, stimuli, ports, defaults, rig):
+    def __init__(self, stimuli, ports, defaults):
 
         self.stimuli = stimuli
         self.defaults = defaults
-        self.rig_number = rig
+        self.rig_number = defaults['rig_number']
 
         self.centered_pt = self.defaults['center_coord']
 
@@ -340,11 +370,16 @@ class ClosedLoopProtocol(BaseProtocol):
 
         # units in camera XY pixels fish must be within center to trigger a trial
         self.min_fish_dst_to_center = self.defaults['min_fish_dst_to_center']
-        self.xy_thresh = 35
-        self.theta_thresh = 6.5
+        self.xy_thresh = self.defaults['xy_thresh']
+        self.theta_thresh = self.defaults['theta_thresh']
 
         self.last_t_update = 0
         self.last_message = None
+
+        self.set_x = 0
+        self.set_y = 0
+        self.set_theta = 0
+
 
         self.current_stim = {'stim_type' : None, 'angle' : None, }
 
@@ -427,12 +462,19 @@ class ClosedLoopProtocol(BaseProtocol):
         else:
             data = np.array(self.fish_data)
 
-            self._x = data[:, 0][~np.isnan(data[:,0])]
-            self._y = data[:, 1][~np.isnan(data[:,1])]
+            self._x = data[:, 1][~np.isnan(data[:,1])]
+            self._y = data[:, 0][~np.isnan(data[:,0])]
+
+            '''
+            _x = self.data[1]
+            _y = self.data[0]
+            x, y = self.position_transformer(_x, _y)
+            messenger.send('stimulus_update', [[x, y, 0]])
+            '''
 
             self.theta = data[:, 2][~np.isnan(data[:, 2])]
 
-            dst_center = np.linalg.norm(np.array([self._y[-1], self._x[-1]]) - np.array(self.centered_pt))
+            dst_center = np.linalg.norm(np.array([self._x[-1], self._y[-1]]) - np.array(self.centered_pt))
             # print(dst_center, self.stimulating)
 
             if not dst_center <= self.min_fish_dst_to_center and not self.stimulating:
@@ -452,12 +494,17 @@ class ClosedLoopProtocol(BaseProtocol):
                     if self.current_stim_id > len(self.stimuli) - 1:
                         self.end_experiment()
 
-                    self.current_stim = self.stimuli.loc[self.current_stim_id]
+                    self.current_stim = self.stimuli.iloc[self.current_stim_id]
 
                     messenger.send('stimulus', [[self.current_stim_id, self.current_stim]])
-                    x, y = self.position_transformer(self._y[-1], self._x[-1])
+                    x, y = self.position_transformer(self._x[-1], self._y[-1])
                     theta = utils.angle_mean(utils.reduce_to_pi(self.theta[-5:]))
                     messenger.send('stimulus_update', [[x, y, degrees(theta)]])
+
+                    self.set_x = self._x[-1]
+                    self.set_y = self._y[-1]
+                    self.set_theta = theta
+
                     self.last_update_time = time.time()
                     # self.save([self.current_stim_id, self.current_stim], self._x[-1], self._y[-1], self.theta[-1])
 
@@ -468,35 +515,52 @@ class ClosedLoopProtocol(BaseProtocol):
 
                 if self.stimulating and time.time() - self.stim_start <= np.max(self.current_stim.duration):
                     # this is where we'll do the updating of xytheta
-                    XCHECK = abs(np.nanmean(self._x[-30:]) - self._x[-1]) >= self.xy_thresh
-                    YCHECK = abs(np.nanmean(self._y[-30:]) - self._y[-1]) >= self.xy_thresh
+                    XCHECK = abs(np.nanmean(self._x[-15:]) - self.set_x) >= self.xy_thresh
+                    YCHECK = abs(np.nanmean(self._y[-15:]) - self.set_y) >= self.xy_thresh
                     XYCHECK = (XCHECK or YCHECK) and not self.current_stim.stim_type == 's'
 
-                    # THETACHECK = (abs(np.nanmean(self.theta[-30:]) - np.nanmean(self.theta[-5:])) / abs(np.nanmean(self.theta[-8:]))) * 100 >= self.theta_thresh
-                    THETACHECK = abs(utils.angle_diff(np.nanmean(self.theta[-30:]), np.nanmean(self.theta[-5:]))) >= radians(self.theta_thresh)
+                    # print(XCHECK, abs(np.nanmean(self._x[-15:]) - self.set_x))
 
+                    # THETACHECK = (abs(np.nanmean(self.theta[-30:]) - np.nanmean(self.theta[-5:])) / abs(np.nanmean(self.theta[-8:]))) * 100 >= self.theta_thresh
+                    THETACHECK = abs(utils.angle_diff(np.nanmean(self.theta[-15:]), radians(self.set_theta))) >= radians(self.theta_thresh)
+                    # print(THETACHECK, abs(utils.angle_diff(np.nanmean(self.theta[-15:]), radians(self.set_theta))), np.nanmean(self.theta[-15:]), radians(self.set_theta))
                     # print('THETA ', THETACHECK , (abs(np.nanmean(self.theta[-30:]) - self.theta[-1]) / abs(self.theta[-1])) * 100)
                     if time.time() - self.last_update_time >= 0.1:
                         if XYCHECK and THETACHECK:
-                            x, y = self.position_transformer(self._y[-1], self._x[-1])
-                            theta = degrees(utils.angle_mean(utils.reduce_to_pi((self.theta[-3:]))))
+                            x, y = self.position_transformer(self._x[-1], self._y[-1])
+                            theta = degrees(utils.angle_mean(utils.reduce_to_pi((self.theta[-5:]))))
                             messenger.send('stimulus_update', [[x, y, theta]])
+
+                            self.set_x = self._x[-1]
+                            self.set_y = self._y[-1]
+                            self.set_theta = theta
                             # self.save([self.current_stim_id, self.current_stim], self._x[-1], self._y[-1], self.theta[-1])
 
                             self.last_update_time = time.time()
                         elif XYCHECK:
-                            x, y = self.position_transformer(self._y[-1], self._x[-1])
-                            messenger.send('stimulus_update', [tuple([x, y])])
+                            x, y = self.position_transformer(self._x[-1], self._y[-1])
+                            messenger.send('stimulus_update', [[x, y]])
                             # self.save([self.current_stim_id, self.current_stim], self._x[-1], self._y[-1], self.theta[-1])
+
+                            self.set_x = self._x[-1]
+                            self.set_y = self._y[-1]
 
                             self.last_update_time = time.time()
 
                         elif THETACHECK:
-                            theta = degrees(utils.angle_mean(utils.reduce_to_pi((self.theta[-3:]))))
-                            messenger.send('stimulus_update', [theta])
+                            theta = degrees(utils.angle_mean(utils.reduce_to_pi((self.theta[-5:]))))
+                            messenger.send('stimulus_update', [[theta]])
+
+                            self.set_theta = theta
+
                             # self.save([self.current_stim_id, self.current_stim], self._x[-1], self._y[-1], self.theta[-1])
                             self.last_update_time = time.time()
 
+                        if time.time() - self.last_update_time >= 1 and THETACHECK or XYCHECK:
+                            x, y = self.position_transformer(self._x[-1], self._y[-1])
+                            theta = degrees(utils.angle_mean(utils.reduce_to_pi((self.theta[-5:]))))
+                            messenger.send('stimulus_update', [[x, y, theta]])
+                            self.last_update_time = time.time()
 
                 else:
                     self.stimulating = False

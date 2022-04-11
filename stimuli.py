@@ -2011,6 +2011,8 @@ class Behavior(StimulusSequencing):
         if self.current_stimulus is None:
             pass
         elif self.current_stimulus['stim_type'] == 's':
+            if self.current_stimulus.stim_name == 'blank':
+                self.current_stimulus.texture = textures.BlankTex()
             if 'texture' in self.current_stimulus:
                 self.current_stimulus['texture_0'] = self.current_stimulus['texture']
             else:

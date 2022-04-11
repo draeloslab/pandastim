@@ -381,7 +381,7 @@ class ClosedLoopProtocol(BaseProtocol):
         self.set_theta = 0
 
 
-        self.current_stim = {'stim_type' : None, 'angle' : None, }
+        self.current_stim = {'stim_type' : None, 'angle' : None, 'stim_name': None}
 
         super().run_experiment()
 
@@ -451,12 +451,13 @@ class ClosedLoopProtocol(BaseProtocol):
 
         if time.time() - self.last_fish_present >= self.missing_fish_t or np.sum(np.isnan(np.array(self.fish_data)[:, 0][-20:])) >= 7: ##FISH LESS THAN 20 - 7 FRAMES:
             # RECENTER THE FISH #
-            if self.last_message != f"centering_at_{self.centered_pt}":
-                self.send_centering()
-                self.last_message = f"centering_at_{self.centered_pt}"
-                print('beep boop we center')
+            if self.current_stim['stim_name'] != 'blank':
+                if self.last_message != f"centering_at_{self.centered_pt}":
+                    self.send_centering()
+                    self.last_message = f"centering_at_{self.centered_pt}"
+                    print('beep boop we center')
 
-            self.stimulating = False
+                self.stimulating = False
             self.update_time()
 
         else:

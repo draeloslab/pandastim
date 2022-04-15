@@ -212,8 +212,6 @@ class GratingGrayTex(TextureBase):
 class GratingRgbTex(TextureBase):
     """
     Rgb 2d square wave (grating) stimulus class (goes from black to rgb val)
-    To do:
-        Could make it alternate b/w two rgb values.
     """
     def __init__(self, texture_size = 512, texture_name = "grating_rgb", 
                  spatial_frequency = 10, rgb = (255, 0, 0)):

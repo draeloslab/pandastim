@@ -196,45 +196,6 @@ class PandasController(QtWidgets.QMainWindow):
 
     @staticmethod
     def spawn_pandas(port=5005, anne=True):
-        '''
-        tex_size = (1024, 1024)
-
-        freq_max=101, colors=True,
-
-
-        freqs = np.arange(freq_max)
-
-        input_textures = {'freq': {},'light_val':{},'dark_val':{}, 'blank': textures.BlankTexXY(texture_size=tex_size)}
-
-        if colors:
-            """
-            dark_vals = np.arange(0,250, 30)
-            _light_vals = list(np.arange(0,250, 30))
-            light_vals = _light_vals.append(255)
-
-            _freqs = []
-            _dvals = []
-            _lvals = []
-            textes = []
-            for f in freqs:
-                for dv in dark_vals:
-                    for lv in light_vals:
-                        _freqs.append(f)
-                        _dvals.append(dv)
-                        _lvals.append(lv)
-                        textes.append(textures.GratingGrayTexXY(texture_size=tex_size, spatial_frequency=f, light_val=lv, dark_val=dv))
-            """
-            dfs = []
-            for i in range(0, 10):
-                dfs.append(pd.read_hdf(r'C:\Soft_Kitty\Anaconda3\envs\clean_pstim\Lib\site-packages\pandastim\gui\df.h5', f'{i}'))
-
-            input_textures = {'full' : pd.concat(dfs), 'blank' : textures.BlankTexXY(texture_size=tex_size)}
-
-        else:
-            for f in freqs:
-                input_textures['freq'][f] = textures.GratingGrayTexXY(texture_size=tex_size, spatial_frequency=f)
-        '''
-
         sve_pth = datetime.now().strftime("%d.%m.%Y__%H.%M.%S") + '_stims.txt'
 
         stimulation = stimuli.ClosedLoopStimChoice(gui=True, live_update=True, debug=True,

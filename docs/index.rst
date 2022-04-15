@@ -10,6 +10,8 @@ Welcome to pandastim's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   intro
+   modules
 
 
 Indices and tables

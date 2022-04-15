@@ -6,7 +6,7 @@ X
 
 Needs to be paired with a subscriber that monitors its output.
 
-Part of pandastim package: https://github.com/EricThomson/pandastim
+Part of pandastim package: https://github.com/mattdloring/pandastim
 """
 
 import time

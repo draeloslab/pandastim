@@ -4,7 +4,7 @@ pandastim/examples/fixed_binocular_sin.py
 
 For info about profiling and the profile_on keyword, see pandastim/readme.md
 
-Part of pandastim package: https://github.com/EricThomson/pandastim
+Part of pandastim package: https://github.com/mattdloring/pandastim
 """
 from pandastim import textures, stimuli
 

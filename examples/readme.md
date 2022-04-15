@@ -1,5 +1,6 @@
 ## Pandastim examples
 - `fixed_gray_sin.py`: unmoving gray sinusoidal texture
+
 - `drifting_red_sin.py`: drifting red sinusoidal texture
 - `fixed_binocular_sin.py` : unmoving green binocular sinosoids
 - `drifting_binocular_grating.py`: two red/black gratings moving in opposite directions.

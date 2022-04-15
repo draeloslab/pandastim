@@ -5,7 +5,7 @@ pandastim/examples/keyboard_switcher.py
 This is not something you would use in an experiment, but is useful for showing the 
 logic of input-driven stimuli.
 
-Part of pandastim package: https://github.com/EricThomson/pandastim
+Part of pandastim package: https://github.com/mattdloring/pandastim
 """
 from pandastim import textures, stimuli
 

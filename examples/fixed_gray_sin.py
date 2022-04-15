@@ -2,7 +2,7 @@
 """
 pandastim/examples/fixed_gray_sin.py
 
-Part of pandastim package: https://github.com/EricThomson/pandastim
+Part of pandastim package: https://github.com/mattdloring/pandastim
 """
 from pandastim import textures, stimuli
 

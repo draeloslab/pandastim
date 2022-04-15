@@ -2,7 +2,7 @@
 """
 pandastim/examples/input_param_control.py
 
-Part of pandastim package: https://github.com/EricThomson/pandastim
+Part of pandastim package: https://github.com/mattdloring/pandastim
 """
 from pandastim import textures, stimuli
 from pandastim.utils import Emitter, port_provider

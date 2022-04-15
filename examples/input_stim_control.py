@@ -5,7 +5,7 @@ pandastim/examples/input_stim_control.py
 Must be run with publisher instance publish_random3.py or else it will just
 show one stimulus forever.
 
-Part of pandastim package: https://github.com/EricThomson/pandastim
+Part of pandastim package: https://github.com/mattdloring/pandastim
 """
 from pandastim import textures, stimuli, utils
 from utils import port_provider

@@ -1,9 +1,4 @@
-try:
-    from pandastim import stimuli
-except ModuleNotFoundError:
-    import sys
-    sys.path.append(r'C:\soft\Anaconda3\envs\pstim\Lib\site-packages')
-    from pandastim import stimuli
+from pandastim import stimuli
 
 # baseline parameters for pstim
 improv_params = {

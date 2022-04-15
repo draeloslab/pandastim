@@ -85,7 +85,7 @@
 <section id="module-pandastim.stimuli">
 <span id="pandastim-stimuli-module"></span><h2>pandastim.stimuli module<a class="headerlink" href="#module-pandastim.stimuli" title="Permalink to this headline"></a></h2>
 <p>pandastim/stimuli.py
-Classes to present visual stimuli in pandastim (subclasses of ShowBase, which 
+Classes to present visual stimuli in pandastim (subclasses of ShowBase, which
 implements the main event loop in panda3d).</p>
 <p>Part of pandastim package: <a class="reference external" href="https://github.com/EricThomson/pandastim">https://github.com/EricThomson/pandastim</a></p>
 <dl class="py class">
@@ -562,7 +562,7 @@ Stimulus shown, in real-time, depends on events produced by utils.Monitor() clas
 <dt>Positional</dt><dd><p>tex_classes: m-element list of texture classes
 stim_params: m-element list of dictionaries: each contains parameters (e.g., velocity)</p>
 </dd>
-<dt>Keyword </dt><dd><p>initial_tex_ind (0): index for first stim to show
+<dt>Keyword</dt><dd><p>initial_tex_ind (0): index for first stim to show
 window_size (512): size of the panda3d window (pixels)
 window_name (‘InputControlStim’): title of window in gui
 profile_on (False): will show actual fps, profiler, and little x at center if True
@@ -746,7 +746,7 @@ from center of image.</p>
 <dd><p>Bases: <a class="reference internal" href="#pandastim.textures.TextureBase" title="pandastim.textures.TextureBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandastim.textures.TextureBase</span></code></a></p>
 <p>Sinusoid that goes from black to the given rgb value.</p>
 <dl class="simple">
-<dt>To do:</dt><dd><p>Currently doesn’t handle phase, contrast 
+<dt>To do:</dt><dd><p>Currently doesn’t handle phase, contrast
 Would be nice to have it cycle between two different colors, not just rgb/black.</p>
 </dd>
 </dl>
@@ -915,7 +915,7 @@ input-coupled stimulus classes.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="pandastim.utils.save_initialize">
 <span class="sig-prename descclassname"><span class="pre">pandastim.utils.</span></span><span class="sig-name descname"><span class="pre">save_initialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tex_classes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stim_params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pandastim/utils.html#save_initialize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandastim.utils.save_initialize" title="Permalink to this definition"></a></dt>
-<dd><p>Initializes saving: saves texture classes and params for 
+<dd><p>Initializes saving: saves texture classes and params for
 input-coupled stimulus classes.</p>
 </dd></dl>
 
@@ -1007,7 +1007,7 @@ emit messages for the panda3d event handler.</p>
 <dt class="sig sig-object py" id="pandastim.utils.Emitter">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pandastim.utils.</span></span><span class="sig-name descname"><span class="pre">Emitter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_vals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_vals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta_vals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pause</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pandastim/utils.html#Emitter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandastim.utils.Emitter" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">direct.showbase.DirectObject.DirectObject</span></code></p>
-<p>Given three lists (x, y, theta): 
+<p>Given three lists (x, y, theta):
 emit the xytheta values in the list with period seconds betwween them, pause, and repeat.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="pandastim.utils.Emitter.run">

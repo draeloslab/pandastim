@@ -42,6 +42,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 master_doc = 'index'
 pygments_style = 'sphinx'
+autodoc_member_order = 'bysource'
 
 # -- Options for HTML output -------------------------------------------------
 

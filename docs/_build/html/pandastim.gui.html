@@ -94,47 +94,7 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="pandastim.gui.pandas_gui.PandasController.spawn_pandas">
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">spawn_pandas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5005</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">anne</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pandastim/gui/pandas_gui.html#PandasController.spawn_pandas"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandastim.gui.pandas_gui.PandasController.spawn_pandas" title="Permalink to this definition"></a></dt>
-<dd><p>tex_size = (1024, 1024)</p>
-<p>freq_max=101, colors=True,</p>
-<p>freqs = np.arange(freq_max)</p>
-<p>input_textures = {‘freq’: {},’light_val’:{},’dark_val’:{}, ‘blank’: textures.BlankTexXY(texture_size=tex_size)}</p>
-<dl>
-<dt>if colors:</dt><dd><p>“””
-dark_vals = np.arange(0,250, 30)
-_light_vals = list(np.arange(0,250, 30))
-light_vals = _light_vals.append(255)</p>
-<p>_freqs = []
-_dvals = []
-_lvals = []
-textes = []
-for f in freqs:</p>
-<blockquote>
-<div><dl class="simple">
-<dt>for dv in dark_vals:</dt><dd><dl class="simple">
-<dt>for lv in light_vals:</dt><dd><p>_freqs.append(f)
-_dvals.append(dv)
-_lvals.append(lv)
-textes.append(textures.GratingGrayTexXY(texture_size=tex_size, spatial_frequency=f, light_val=lv, dark_val=dv))</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</div></blockquote>
-<p>“””
-dfs = []
-for i in range(0, 10):</p>
-<blockquote>
-<div><p>dfs.append(pd.read_hdf(r’C:Soft_KittyAnaconda3envsclean_pstimLibsite-packagespandastimguidf.h5’, f’{i}’))</p>
-</div></blockquote>
-<p>input_textures = {‘full’ : pd.concat(dfs), ‘blank’ : textures.BlankTexXY(texture_size=tex_size)}</p>
-</dd>
-<dt>else:</dt><dd><dl class="simple">
-<dt>for f in freqs:</dt><dd><p>input_textures[‘freq’][f] = textures.GratingGrayTexXY(texture_size=tex_size, spatial_frequency=f)</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
+<dd></dd></dl>
 
 </dd></dl>
 

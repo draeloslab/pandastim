@@ -47,6 +47,8 @@ templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 master_doc = 'index'
+source_suffix = '.rst'
+
 pygments_style = 'sphinx'
 autodoc_member_order = 'bysource'
 

@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="0b48b3ac-70a0-4647-b57b-fde1a22329c7" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/examples/drifting_binocular_grating.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/drifting_binocular_grating.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/drifting_red_sin.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/drifting_red_sin.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/fixed_binocular_sin.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/fixed_binocular_sin.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/fixed_gray_sin.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/fixed_gray_sin.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/input_param_control.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/input_param_control.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/input_stim_control.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/input_stim_control.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/keyboard_switcher.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/keyboard_switcher.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/moving_red_sin.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/moving_red_sin.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/publish_random2.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/publish_random2.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/publish_random3.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/publish_random3.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/examples/readme.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/experiments/improv.py" beforeDir="false" afterPath="$PROJECT_DIR$/experiments/improv.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectId" id="20BUuqBa7YaM1K3S8ZAuZrZGcRa" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="node.js.detected.package.eslint" value="true" />
+    <property name="node.js.path.for.package.eslint" value="project" />
+    <property name="node.js.path.for.package.tslint" value="project" />
+    <property name="node.js.selected.package.eslint" value="(autodetect)" />
+    <property name="node.js.selected.package.tslint" value="(autodetect)" />
+  </component>
+  <component name="RunManager" selected="Python.matt_bhvr">
+    <configuration name="matt_bhvr" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="pandastim" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/experiments" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/experiments/matt_bhvr.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="positioncircle" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="pandastim" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/behavior" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/behavior/positioncircle.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.matt_bhvr" />
+        <item itemvalue="Python.positioncircle" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="0b48b3ac-70a0-4647-b57b-fde1a22329c7" name="Default Changelist" comment="" />
+      <created>1635517699610</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1635517699610</updated>
+      <workItem from="1635517700679" duration="50221000" />
+      <workItem from="1636653147526" duration="49013000" />
+      <workItem from="1637074042946" duration="22708000" />
+      <workItem from="1650044337178" duration="230000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/pandastim$positioncircle.coverage" NAME="positioncircle Coverage Results" MODIFIED="1637082084861" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/behavior" />
+    <SUITE FILE_PATH="coverage/pandastim$matt_bhvr.coverage" NAME="matt_bhvr Coverage Results" MODIFIED="1637082335056" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/experiments" />
+  </component>
+</project>

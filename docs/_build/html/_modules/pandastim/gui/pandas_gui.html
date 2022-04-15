@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pandastim.gui.pandas_gui &mdash; pandastim 1.0 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> pandastim
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../intro.html">Intro</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">pandastim</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">pandastim</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>pandastim.gui.pandas_gui</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for pandastim.gui.pandas_gui</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">PyQt5</span> <span class="kn">import</span> <span class="n">QtWidgets</span><span class="p">,</span> <span class="n">uic</span>
+<span class="kn">from</span> <span class="nn">PyQt5.Qt</span> <span class="kn">import</span> <span class="n">QApplication</span>
+
+<span class="kn">from</span> <span class="nn">pandastim</span> <span class="kn">import</span> <span class="n">textures</span><span class="p">,</span> <span class="n">stimuli</span><span class="p">,</span> <span class="n">utils</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+
+<span class="kn">import</span> <span class="nn">qdarkstyle</span>
+<span class="kn">import</span> <span class="nn">zmq</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">multiprocessing</span> <span class="k">as</span> <span class="nn">mp</span>
+<span class="kn">import</span> <span class="nn">threading</span> <span class="k">as</span> <span class="nn">tr</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="n">exit_event</span> <span class="o">=</span> <span class="n">tr</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="PandasController"><a class="viewcode-back" href="../../../pandastim.gui.html#pandastim.gui.pandas_gui.PandasController">[docs]</a><span class="k">class</span> <span class="nc">PandasController</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMainWindow</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PandasController</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">locPath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">UIpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">locPath</span><span class="p">,</span> <span class="s1">&#39;gui_layout.ui&#39;</span><span class="p">)</span>
+        <span class="n">uic</span><span class="o">.</span><span class="n">loadUi</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">UIpath</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">updateButton</span><span class="o">.</span><span class="n">clicked</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">update_stimuli</span><span class="p">)</span>
+        <span class="c1"># QtWidgets.QCheckBox.</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pandas_port</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">port_provider</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;pandas on port&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pandas_port</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_context</span> <span class="o">=</span> <span class="n">zmq</span><span class="o">.</span><span class="n">Context</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_socket</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_context</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">zmq</span><span class="o">.</span><span class="n">PUB</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_socket</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s1">&#39;tcp://*:&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pandas_port</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stimulus_topic</span> <span class="o">=</span> <span class="s1">&#39;stim&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_frequency</span> <span class="o">=</span> <span class="mi">200</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="n">anne</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pandas</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">spawn_pandas</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pandas_port</span><span class="p">,</span> <span class="n">anne</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pandas</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">wf_freq</span><span class="o">.</span><span class="n">setMaximum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_frequency</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">live_updater</span> <span class="o">=</span> <span class="n">tr</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">live_updater</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">live_updater</span><span class="o">.</span><span class="n">dameon</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">live_updater</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+<div class="viewcode-block" id="PandasController.update_stimuli"><a class="viewcode-back" href="../../../pandastim.gui.html#pandastim.gui.pandas_gui.PandasController.update_stimuli">[docs]</a>    <span class="k">def</span> <span class="nf">update_stimuli</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">curr_tab</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tabs</span><span class="o">.</span><span class="n">currentIndex</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">curr_tab</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">stim</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;load&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;stim_type&#39;</span><span class="p">:</span> <span class="s1">&#39;s&#39;</span><span class="p">,</span> <span class="s1">&#39;angle&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">wf_angle</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="s1">&#39;velocity&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">wf_vel</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span>
+                    <span class="s1">&#39;stationary_time&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">wf_stat</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="s1">&#39;stim_time&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">wf_stim_time</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span>
+                    <span class="s1">&#39;frequency&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">wf_freq</span><span class="o">.</span><span class="n">value</span><span class="p">()}</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_socket</span><span class="o">.</span><span class="n">send_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stimulus_topic</span><span class="p">,</span> <span class="n">zmq</span><span class="o">.</span><span class="n">SNDMORE</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_socket</span><span class="o">.</span><span class="n">send_pyobj</span><span class="p">(</span><span class="n">stim</span><span class="p">)</span>
+
+            <span class="n">stim</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;stim_type&#39;</span><span class="p">:</span> <span class="s1">&#39;s&#39;</span><span class="p">,</span> <span class="s1">&#39;angle&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">wf_angle</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="s1">&#39;velocity&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">wf_vel</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span>
+                    <span class="s1">&#39;stationary_time&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">wf_stat</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="s1">&#39;stim_time&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">wf_stim_time</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span>
+                    <span class="s1">&#39;frequency&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">wf_freq</span><span class="o">.</span><span class="n">value</span><span class="p">()}</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_socket</span><span class="o">.</span><span class="n">send_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stimulus_topic</span><span class="p">,</span> <span class="n">zmq</span><span class="o">.</span><span class="n">SNDMORE</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_socket</span><span class="o">.</span><span class="n">send_pyobj</span><span class="p">(</span><span class="n">stim</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">curr_tab</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">stim</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;load&#39;</span> <span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s1">&#39;stim_type&#39;</span><span class="p">:</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;angle&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">b_angle_0</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_angle_1</span><span class="o">.</span><span class="n">value</span><span class="p">()],</span>
+                <span class="s1">&#39;velocity&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">b_vel_0</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_vel_1</span><span class="o">.</span><span class="n">value</span><span class="p">()],</span>
+                <span class="s1">&#39;stationary_time&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">b_stat_0</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_stat_1</span><span class="o">.</span><span class="n">value</span><span class="p">()],</span>
+                <span class="s1">&#39;stim_time&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">b_t_0</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_t_1</span><span class="o">.</span><span class="n">value</span><span class="p">()],</span>
+                <span class="s1">&#39;frequency&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">b_freq_0</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_freq_1</span><span class="o">.</span><span class="n">value</span><span class="p">()],</span>
+                <span class="s1">&#39;center_width&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_center_width</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span>
+                <span class="s1">&#39;center_x&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctr_x</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span>
+                <span class="s1">&#39;center_y&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctr_y</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span>
+                <span class="s1">&#39;strip_angle&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">strip_angle</span><span class="o">.</span><span class="n">value</span><span class="p">()</span>
+            <span class="p">}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_socket</span><span class="o">.</span><span class="n">send_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stimulus_topic</span><span class="p">,</span> <span class="n">zmq</span><span class="o">.</span><span class="n">SNDMORE</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_socket</span><span class="o">.</span><span class="n">send_pyobj</span><span class="p">(</span><span class="n">stim</span><span class="p">)</span>
+
+            <span class="n">stim</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;stim_type&#39;</span><span class="p">:</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;angle&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">b_angle_0</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_angle_1</span><span class="o">.</span><span class="n">value</span><span class="p">()],</span>
+                <span class="s1">&#39;velocity&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">b_vel_0</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_vel_1</span><span class="o">.</span><span class="n">value</span><span class="p">()],</span>
+                <span class="s1">&#39;stationary_time&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">b_stat_0</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_stat_1</span><span class="o">.</span><span class="n">value</span><span class="p">()],</span>
+                <span class="s1">&#39;stim_time&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">b_t_0</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_t_1</span><span class="o">.</span><span class="n">value</span><span class="p">()],</span>
+                <span class="s1">&#39;frequency&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">b_freq_0</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_freq_1</span><span class="o">.</span><span class="n">value</span><span class="p">()],</span>
+                <span class="s1">&#39;center_width&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_center_width</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span>
+                <span class="s1">&#39;center_x&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctr_x</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span>
+                <span class="s1">&#39;center_y&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctr_y</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span>
+                <span class="s1">&#39;strip_angle&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">strip_angle</span><span class="o">.</span><span class="n">value</span><span class="p">()</span>
+            <span class="p">}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_socket</span><span class="o">.</span><span class="n">send_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stimulus_topic</span><span class="p">,</span> <span class="n">zmq</span><span class="o">.</span><span class="n">SNDMORE</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_socket</span><span class="o">.</span><span class="n">send_pyobj</span><span class="p">(</span><span class="n">stim</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">curr_tab</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">stim</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;stim_type&#39;</span><span class="p">:</span> <span class="s1">&#39;rdk&#39;</span>
+
+            <span class="p">}</span></div>
+
+<div class="viewcode-block" id="PandasController.live_updater"><a class="viewcode-back" href="../../../pandastim.gui.html#pandastim.gui.pandas_gui.PandasController.live_updater">[docs]</a>    <span class="k">def</span> <span class="nf">live_updater</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="p">:</span>
+            <span class="n">curr_tab</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tabs</span><span class="o">.</span><span class="n">currentIndex</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">exit_event</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">break</span>
+
+            <span class="k">if</span> <span class="n">curr_tab</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">last_sent</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">exit_event</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">False</span>
+                        <span class="k">break</span>
+
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">liveUpdate</span><span class="o">.</span><span class="n">isChecked</span><span class="p">():</span>
+                        <span class="n">stim1</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;load&#39;</span><span class="p">:</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;stim_type&#39;</span><span class="p">:</span> <span class="s1">&#39;s&#39;</span><span class="p">,</span> <span class="s1">&#39;angle&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">wf_angle</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="s1">&#39;velocity&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">wf_vel</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span>
+                                <span class="s1">&#39;stationary_time&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">wf_stat</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="s1">&#39;stim_time&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">wf_stim_time</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span>
+                                <span class="s1">&#39;frequency&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">wf_freq</span><span class="o">.</span><span class="n">value</span><span class="p">()}</span>
+
+                        <span class="n">stim</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;stim_type&#39;</span><span class="p">:</span> <span class="s1">&#39;s&#39;</span><span class="p">,</span> <span class="s1">&#39;angle&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">wf_angle</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="s1">&#39;velocity&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">wf_vel</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span>
+                                <span class="s1">&#39;stationary_time&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">wf_stat</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="s1">&#39;stim_time&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">wf_stim_time</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span>
+                                <span class="s1">&#39;frequency&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">wf_freq</span><span class="o">.</span><span class="n">value</span><span class="p">()}</span>
+                        <span class="k">if</span> <span class="n">stim</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_sent</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_socket</span><span class="o">.</span><span class="n">send_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stimulus_topic</span><span class="p">,</span> <span class="n">zmq</span><span class="o">.</span><span class="n">SNDMORE</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_socket</span><span class="o">.</span><span class="n">send_pyobj</span><span class="p">(</span><span class="n">stim1</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">last_sent</span> <span class="o">=</span> <span class="n">stim1</span>
+
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_socket</span><span class="o">.</span><span class="n">send_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stimulus_topic</span><span class="p">,</span> <span class="n">zmq</span><span class="o">.</span><span class="n">SNDMORE</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_socket</span><span class="o">.</span><span class="n">send_pyobj</span><span class="p">(</span><span class="n">stim</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">last_sent</span> <span class="o">=</span> <span class="n">stim</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">pass</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">break</span>
+                    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.02</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">curr_tab</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">last_sent</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">exit_event</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">False</span>
+                        <span class="k">break</span>
+
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">liveUpdate</span><span class="o">.</span><span class="n">isChecked</span><span class="p">():</span>
+                        <span class="n">stim1</span> <span class="o">=</span> <span class="p">{</span>
+                            <span class="s1">&#39;load&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                            <span class="s1">&#39;stim_type&#39;</span><span class="p">:</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;angle&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">b_angle_0</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_angle_1</span><span class="o">.</span><span class="n">value</span><span class="p">()],</span>
+                            <span class="s1">&#39;velocity&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">b_vel_0</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_vel_1</span><span class="o">.</span><span class="n">value</span><span class="p">()],</span>
+                            <span class="s1">&#39;stationary_time&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">b_stat_0</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_stat_1</span><span class="o">.</span><span class="n">value</span><span class="p">()],</span>
+                            <span class="s1">&#39;stim_time&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">b_t_0</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_t_1</span><span class="o">.</span><span class="n">value</span><span class="p">()],</span>
+                            <span class="s1">&#39;frequency&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">b_freq_0</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_freq_1</span><span class="o">.</span><span class="n">value</span><span class="p">()],</span>
+                            <span class="s1">&#39;center_width&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_center_width</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span>
+                            <span class="s1">&#39;center_x&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctr_x</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span>
+                            <span class="s1">&#39;center_y&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctr_y</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span>
+                            <span class="s1">&#39;strip_angle&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">strip_angle</span><span class="o">.</span><span class="n">value</span><span class="p">()</span>
+                        <span class="p">}</span>
+
+                        <span class="n">stim</span> <span class="o">=</span> <span class="p">{</span>
+                            <span class="s1">&#39;stim_type&#39;</span><span class="p">:</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;angle&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">b_angle_0</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_angle_1</span><span class="o">.</span><span class="n">value</span><span class="p">()],</span>
+                            <span class="s1">&#39;velocity&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">b_vel_0</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_vel_1</span><span class="o">.</span><span class="n">value</span><span class="p">()],</span>
+                            <span class="s1">&#39;stationary_time&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">b_stat_0</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_stat_1</span><span class="o">.</span><span class="n">value</span><span class="p">()],</span>
+                            <span class="s1">&#39;stim_time&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">b_t_0</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_t_1</span><span class="o">.</span><span class="n">value</span><span class="p">()],</span>
+                            <span class="s1">&#39;frequency&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">b_freq_0</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_freq_1</span><span class="o">.</span><span class="n">value</span><span class="p">()],</span>
+                            <span class="s1">&#39;center_width&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_center_width</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span>
+                            <span class="s1">&#39;center_x&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctr_x</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span>
+                            <span class="s1">&#39;center_y&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctr_y</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span>
+                            <span class="s1">&#39;strip_angle&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">strip_angle</span><span class="o">.</span><span class="n">value</span><span class="p">()</span>
+                        <span class="p">}</span>
+                        <span class="k">if</span> <span class="n">stim</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_sent</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_socket</span><span class="o">.</span><span class="n">send_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stimulus_topic</span><span class="p">,</span> <span class="n">zmq</span><span class="o">.</span><span class="n">SNDMORE</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_socket</span><span class="o">.</span><span class="n">send_pyobj</span><span class="p">(</span><span class="n">stim1</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">last_sent</span> <span class="o">=</span> <span class="n">stim1</span>
+
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_socket</span><span class="o">.</span><span class="n">send_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stimulus_topic</span><span class="p">,</span> <span class="n">zmq</span><span class="o">.</span><span class="n">SNDMORE</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_socket</span><span class="o">.</span><span class="n">send_pyobj</span><span class="p">(</span><span class="n">stim</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">last_sent</span> <span class="o">=</span> <span class="n">stim</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">pass</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">break</span>
+                    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.02</span><span class="p">)</span>
+
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.005</span><span class="p">)</span>
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="PandasController.closeEvent"><a class="viewcode-back" href="../../../pandastim.gui.html#pandastim.gui.pandas_gui.PandasController.closeEvent">[docs]</a>    <span class="k">def</span> <span class="nf">closeEvent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pandas</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+        <span class="n">exit_event</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PandasController.spawn_pandas"><a class="viewcode-back" href="../../../pandastim.gui.html#pandastim.gui.pandas_gui.PandasController.spawn_pandas">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">spawn_pandas</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="mi">5005</span><span class="p">,</span> <span class="n">anne</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        tex_size = (1024, 1024)</span>
+
+<span class="sd">        freq_max=101, colors=True,</span>
+
+
+<span class="sd">        freqs = np.arange(freq_max)</span>
+
+<span class="sd">        input_textures = {&#39;freq&#39;: {},&#39;light_val&#39;:{},&#39;dark_val&#39;:{}, &#39;blank&#39;: textures.BlankTexXY(texture_size=tex_size)}</span>
+
+<span class="sd">        if colors:</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+<span class="sd">            dark_vals = np.arange(0,250, 30)</span>
+<span class="sd">            _light_vals = list(np.arange(0,250, 30))</span>
+<span class="sd">            light_vals = _light_vals.append(255)</span>
+
+<span class="sd">            _freqs = []</span>
+<span class="sd">            _dvals = []</span>
+<span class="sd">            _lvals = []</span>
+<span class="sd">            textes = []</span>
+<span class="sd">            for f in freqs:</span>
+<span class="sd">                for dv in dark_vals:</span>
+<span class="sd">                    for lv in light_vals:</span>
+<span class="sd">                        _freqs.append(f)</span>
+<span class="sd">                        _dvals.append(dv)</span>
+<span class="sd">                        _lvals.append(lv)</span>
+<span class="sd">                        textes.append(textures.GratingGrayTexXY(texture_size=tex_size, spatial_frequency=f, light_val=lv, dark_val=dv))</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+<span class="sd">            dfs = []</span>
+<span class="sd">            for i in range(0, 10):</span>
+<span class="sd">                dfs.append(pd.read_hdf(r&#39;C:\Soft_Kitty\Anaconda3\envs\clean_pstim\Lib\site-packages\pandastim\gui\df.h5&#39;, f&#39;{i}&#39;))</span>
+
+<span class="sd">            input_textures = {&#39;full&#39; : pd.concat(dfs), &#39;blank&#39; : textures.BlankTexXY(texture_size=tex_size)}</span>
+
+<span class="sd">        else:</span>
+<span class="sd">            for f in freqs:</span>
+<span class="sd">                input_textures[&#39;freq&#39;][f] = textures.GratingGrayTexXY(texture_size=tex_size, spatial_frequency=f)</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">sve_pth</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%d</span><span class="s2">.%m.%Y__%H.%M.%S&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_stims.txt&#39;</span>
+
+        <span class="n">stimulation</span> <span class="o">=</span> <span class="n">stimuli</span><span class="o">.</span><span class="n">ClosedLoopStimChoice</span><span class="p">(</span><span class="n">gui</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">live_update</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                                   <span class="n">publisher_port</span><span class="o">=</span><span class="mi">5008</span><span class="p">,</span> <span class="n">save_path</span><span class="o">=</span><span class="n">sve_pth</span><span class="p">)</span>
+
+        <span class="n">sub</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">Subscriber</span><span class="p">(</span><span class="n">topic</span><span class="o">=</span><span class="s2">&quot;stim&quot;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">anne</span><span class="p">:</span>
+            <span class="n">sub2</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">Subscriber</span><span class="p">(</span><span class="n">topic</span><span class="o">=</span><span class="s2">&quot;stim&quot;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">5006</span><span class="p">,</span> <span class="n">ip</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;tcp://10.122.170.169:&quot;</span><span class="p">)</span>
+            <span class="n">sub3</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">Subscriber</span><span class="p">(</span><span class="n">topic</span><span class="o">=</span><span class="s2">&quot;stim&quot;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">5010</span><span class="p">)</span>
+            <span class="n">monitor2</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">MonitorDataPass</span><span class="p">(</span><span class="n">sub2</span><span class="p">)</span>
+            <span class="n">monitor3</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">MonitorDataPass</span><span class="p">(</span><span class="n">sub3</span><span class="p">)</span>
+
+        <span class="n">monitor</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">MonitorDataPass</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span>
+
+
+        <span class="n">stimulation</span><span class="o">.</span><span class="n">run</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="run"><a class="viewcode-back" href="../../../pandastim.gui.html#pandastim.gui.pandas_gui.run">[docs]</a><span class="k">def</span> <span class="nf">run</span><span class="p">():</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">QApplication</span><span class="p">([])</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="n">qdarkstyle</span><span class="o">.</span><span class="n">load_stylesheet_pyqt5</span><span class="p">())</span>
+
+    <span class="n">wind</span> <span class="o">=</span> <span class="n">PandasController</span><span class="p">()</span>
+    <span class="n">wind</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">exec</span><span class="p">()</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">run</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Matthew Loring, Eric Thomson.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

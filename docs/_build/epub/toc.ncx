@@ -2,7 +2,7 @@
 <ncx version="2005-1" xmlns="http://www.daisy.org/z3986/2005/ncx/">
   <head>
     <meta name="dtb:uid" content="unknown"/>
-    <meta name="dtb:depth" content="1"/>
+    <meta name="dtb:depth" content="3"/>
     <meta name="dtb:totalPageCount" content="0"/>
     <meta name="dtb:maxPageNumber" content="0"/>
   </head>
@@ -15,6 +15,72 @@
         <text>Welcome to pandastim’s documentation!</text>
       </navLabel>
       <content src="index.xhtml" />  
+    </navPoint>
+    <navPoint id="navPoint2" playOrder="2">
+      <navLabel>
+        <text>Intro</text>
+      </navLabel>
+      <content src="intro.xhtml" />  
+    </navPoint>
+    <navPoint id="navPoint3" playOrder="3">
+      <navLabel>
+        <text>pandastim</text>
+      </navLabel>
+      <content src="modules.xhtml" />  
+      <navPoint id="navPoint4" playOrder="3">
+        <navLabel>
+          <text>pandastim</text>
+        </navLabel>
+        <content src="modules.xhtml" />  
+      </navPoint>
+      <navPoint id="navPoint5" playOrder="4">
+        <navLabel>
+          <text>pandastim package</text>
+        </navLabel>
+        <content src="pandastim.xhtml" />  
+        <navPoint id="navPoint6" playOrder="4">
+          <navLabel>
+            <text>pandastim package</text>
+          </navLabel>
+          <content src="pandastim.xhtml" />  
+        </navPoint>
+        <navPoint id="navPoint7" playOrder="5">
+          <navLabel>
+            <text>Subpackages</text>
+          </navLabel>
+          <content src="pandastim.xhtml#subpackages" />  
+        </navPoint>
+        <navPoint id="navPoint8" playOrder="6">
+          <navLabel>
+            <text>Submodules</text>
+          </navLabel>
+          <content src="pandastim.xhtml#submodules" />  
+        </navPoint>
+        <navPoint id="navPoint9" playOrder="7">
+          <navLabel>
+            <text>pandastim.stimuli module</text>
+          </navLabel>
+          <content src="pandastim.xhtml#module-pandastim.stimuli" />  
+        </navPoint>
+        <navPoint id="navPoint10" playOrder="8">
+          <navLabel>
+            <text>pandastim.textures module</text>
+          </navLabel>
+          <content src="pandastim.xhtml#module-pandastim.textures" />  
+        </navPoint>
+        <navPoint id="navPoint11" playOrder="9">
+          <navLabel>
+            <text>pandastim.utils module</text>
+          </navLabel>
+          <content src="pandastim.xhtml#module-pandastim.utils" />  
+        </navPoint>
+        <navPoint id="navPoint12" playOrder="10">
+          <navLabel>
+            <text>Module contents</text>
+          </navLabel>
+          <content src="pandastim.xhtml#module-pandastim" />  
+        </navPoint>
+      </navPoint>
     </navPoint>
   </navMap>
 </ncx>

@@ -1,13 +1,6 @@
 pandastim package
 =================
 
-Subpackages
------------
-
-.. toctree::
-   :maxdepth: 4
-
-   pandastim.gui
 
 Submodules
 ----------

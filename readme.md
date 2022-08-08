@@ -23,6 +23,11 @@ The pandastim gui can be run from the command line inside the environment:
 
 *Live updating not recommended when using specific stimulus times
 
+
+
+### Most up to date live stimulus updating and "statically typed" stimulus classes derived from dev branch. Behavior still lives on main
+
+
 ### Package structure
 The three main modules:
 - `stimuli.py`: instances of `ShowBase`, the panda3d class that is used to render scenes.  Can be as simple as showing a static grey sinusoidal grating, or showing a sequence of stimuli locked to an input signal from some external source.

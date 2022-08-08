@@ -1,5 +1,5 @@
 # pandastim
-<img align = "right" width = "120" src=".\images\omr_sin_example.png ">
+<img align = "right" width = "120" src=".\resources\omr_sin_example.png ">
 
 ### Most up to date live stimulus updating and "statically typed" stimulus classes derived from dev branch. Behavior still lives on main
 

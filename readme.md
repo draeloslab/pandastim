@@ -6,6 +6,7 @@
 
 
 
+
 Cross-platform Python package for generating visual stimuli using the [Panda3d](https://www.panda3d.org/) library, a Python game-engine developed by Disney.
 
 ### Installation

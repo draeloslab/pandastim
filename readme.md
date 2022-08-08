@@ -2,7 +2,7 @@
 <img align = "right" width = "120" src=".\resources\omr_sin_example.png ">
 
 ### Most up to date live stimulus updating and "statically typed" stimulus classes derived from dev branch. Behavior still lives on main
-
+--also note: dev branch upgrades requirement to python 3.10
 
 
 

@@ -1,6 +1,11 @@
 # pandastim
 <img align = "right" width = "120" src=".\images\omr_sin_example.png ">
 
+### Most up to date live stimulus updating and "statically typed" stimulus classes derived from dev branch. Behavior still lives on main
+
+
+
+
 Cross-platform Python package for generating visual stimuli using the [Panda3d](https://www.panda3d.org/) library, a Python game-engine developed by Disney.
 
 ### Installation
@@ -24,8 +29,6 @@ The pandastim gui can be run from the command line inside the environment:
 *Live updating not recommended when using specific stimulus times
 
 
-
-### Most up to date live stimulus updating and "statically typed" stimulus classes derived from dev branch. Behavior still lives on main
 
 
 ### Package structure

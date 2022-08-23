@@ -6,9 +6,7 @@ Helper functions used in multiple classes in stimulu/textures
 Part of pandastim package: https://github.com/mattdloring/pandastim
 """
 import numpy as np
-
-from pandastim.stimuli import textures
-
+from scipy import signal
 
 def sin_byte(X: np.array, freq: int = 1) -> np.array:
     """
@@ -50,7 +48,7 @@ def uv2card(val: float) -> float:
     return 2 * val
 
 
-def unpack_tex(tex: textures.TextureBase) -> dict:
+def unpack_tex(tex) -> dict:
     vdict = vars(tex).copy()
     try:
         del vdict["texture_array"]

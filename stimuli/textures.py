@@ -24,9 +24,9 @@ except Exception as e:
     print("error import matplotlib", e)
 
 import math
-import numpy as np
-
 from abc import ABC, abstractmethod
+
+import numpy as np
 from panda3d.core import Texture
 
 from pandastim import utils

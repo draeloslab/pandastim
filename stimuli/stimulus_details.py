@@ -1,10 +1,12 @@
 from dataclasses import dataclass
 
+
 @dataclass(frozen=True)
 class StimulusDetails:
     """Contains details about a given stimulus"""
 
     stim_name: str
+
 
 @dataclass(frozen=True)
 class MonocularStimulusDetails(StimulusDetails):
@@ -39,7 +41,7 @@ class MonocularStimulusDetails(StimulusDetails):
     def __post_init__(self):
         """Because python isn't static lets force things here"""
         if self.master:
-            for k,v in master_types.items():
+            for k, v in master_types.items():
                 assert k in self.__dict__.keys(), f"must provide {k}"
                 assert isinstance(getattr(self, k), v), f"{k} must be type: {v}"
 
@@ -49,6 +51,7 @@ class MonocularStimulusDetails(StimulusDetails):
         stim_dict.pop("texture_size")
         stim_dict.pop("texture")
         return {"stimulus": stim_dict, "texture": tex_dict}
+
 
 @dataclass(frozen=True)
 class BinocularStimulusDetails(StimulusDetails):
@@ -76,21 +79,21 @@ class BinocularStimulusDetails(StimulusDetails):
     stim_name: str = f"binocular-stimulus_{velocity}_{angle}"
 
     master = {
-            stim_name: str,
-            angle: tuple,
-            velocity: tuple,
-            stationary_time: tuple,
-            duration: tuple,
-            strip_width: int,
-            position: tuple,
-            strip_angle: int,
-            texture: tuple,
-        }
+        stim_name: str,
+        angle: tuple,
+        velocity: tuple,
+        stationary_time: tuple,
+        duration: tuple,
+        strip_width: int,
+        position: tuple,
+        strip_angle: int,
+        texture: tuple,
+    }
 
     def __post_init__(self):
         """Because python isn't static lets force things here"""
         if self.master:
-            for k,v in master_types.items():
+            for k, v in master_types.items():
                 assert k in self.__dict__.keys(), f"must provide {k}"
                 assert isinstance(getattr(self, k), v), f"{k} must be type: {v}"
 

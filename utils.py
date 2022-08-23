@@ -20,6 +20,7 @@ def sin_byte(X: np.array, freq: int = 1) -> np.array:
     sin_transformed = (sin_float + 1) * 127.5
     return np.uint8(sin_transformed)
 
+
 def grating_byte(X: np.array, freq: int = 1) -> np.array:
     """
     Unsigned 8 bit representation of a grating (square wave)
@@ -29,6 +30,7 @@ def grating_byte(X: np.array, freq: int = 1) -> np.array:
     # from 0-255
     grating_transformed = (grating_float + 1) * 127.5
     return np.uint8(grating_transformed)
+
 
 def card2uv(val: float) -> float:
     """
@@ -48,7 +50,7 @@ def uv2card(val: float) -> float:
     return 2 * val
 
 
-def unpack_tex(tex : textures.TextureBase) -> dict:
+def unpack_tex(tex: textures.TextureBase) -> dict:
     vdict = vars(tex).copy()
     try:
         del vdict["texture_array"]

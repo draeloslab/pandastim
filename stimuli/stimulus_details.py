@@ -1,3 +1,10 @@
+"""
+pandastim/stimuli/stimulus_details.py
+
+defines strict parameters for stimuli to follow according to defined type -- fake static typed
+
+Part of pandastim package: https://github.com/mattdloring/pandastim
+"""
 from dataclasses import dataclass
 
 

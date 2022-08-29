@@ -1,15 +1,14 @@
 import multiprocessing as mp
 import sys
-import qdarkstyle
-
 from pathlib import Path
-from PyQt5.Qt import QApplication
 
+import qdarkstyle
+from PyQt5.Qt import QApplication
 from scopeslip import zmqComm
 from scopeslip.gui import alignment_gui
 
 from pandastim.buddies import stimulus_buddies
-from pandastim.stimuli import stimulus_details, stimulus
+from pandastim.stimuli import stimulus, stimulus_details
 
 
 def pandastim_wrapper(alignment_comms):
@@ -43,7 +42,10 @@ def alignment_wrapper(alignment_comms):
         outputPort="5005", inputIP="tcp://10.122.170.21:", inputPort="4701"
     )
 
-    pa = alignment_gui.PlaneAligner(walkytalky=myWalky, stimBuddyPorts=alignment_comms,)
+    pa = alignment_gui.PlaneAligner(
+        walkytalky=myWalky,
+        stimBuddyPorts=alignment_comms,
+    )
     pa.show()
     app.exec()
 
@@ -54,6 +56,8 @@ if __name__ == "__main__":
 
     _processes = [pandastim_wrapper, alignment_wrapper]
 
-    processes = [mp.Process(target=p, args=(alignment_communication_ports,)) for p in _processes]
+    processes = [
+        mp.Process(target=p, args=(alignment_communication_ports,)) for p in _processes
+    ]
     [p.start() for p in processes]
     [p.join() for p in processes]

@@ -462,6 +462,7 @@ class OpenLoopStimulus(StimulusSequencing):
 
         self.set_stimulus()
 
+
 class SequencingWithPause(StimulusSequencing):
     """
     this one can pause
@@ -504,6 +505,7 @@ class SequencingWithPause(StimulusSequencing):
         self.buddy.stimulus(self.current_stimulus)
         self.buddy.broadcaster()
         return buddytask.cont
+
 
 class ExternalStimulus(SequencingWithPause):
     """

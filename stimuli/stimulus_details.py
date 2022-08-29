@@ -7,8 +7,8 @@ Part of pandastim package: https://github.com/mattdloring/pandastim
 """
 from dataclasses import dataclass
 
-from pandastim.stimuli import textures
 from pandastim import utils
+from pandastim.stimuli import textures
 
 
 @dataclass(frozen=True)
@@ -145,12 +145,13 @@ def monocular2binocular(
             new_stim_dict[key] = (stim1_dict[key], stim2_dict[key])
     return BinocularStimulusDetails(**new_stim_dict)
 
+
 def legacy2current(stim_df, tex="grating_gray", duration=15, stationary_time=10):
     import inspect
 
     texDict = {"texture_name": "grating_gray", "frequency": 48}
     createdTexture = utils.createTexture(texDict)
-    createdTextures = (createdTexture, createdTexture) # assumes same textures
+    createdTextures = (createdTexture, createdTexture)  # assumes same textures
     stimSequence = []
     for row_n in range(len(stim_df)):
         row = stim_df.iloc[row_n]

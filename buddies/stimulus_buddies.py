@@ -16,6 +16,7 @@ try:
 except ImportError:
     print("alignment unavailable, no scopeslip package found")
 
+
 class StimulusBuddy(DirectObject.DirectObject):
     def __init__(
         self,
@@ -31,7 +32,9 @@ class StimulusBuddy(DirectObject.DirectObject):
             default_params_path = (
                 Path(sys.executable)
                 .parents[0]
-                .joinpath(r"Lib\site-packages\pandastim\resources\params\default_params.json")
+                .joinpath(
+                    r"Lib\site-packages\pandastim\resources\params\default_params.json"
+                )
             )
         with open(default_params_path) as json_file:
             self.default_params = json.load(json_file)
@@ -249,7 +252,6 @@ class AligningStimBuddy(StimulusBuddy):
 
         self.alignmentThread = tr.Thread(target=self.msg_reception)
         self.alignmentThread.start()
-
 
         self.pThread = tr.Thread(target=self.pstart)
         self.pThread.start()

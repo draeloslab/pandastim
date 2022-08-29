@@ -5,10 +5,8 @@ Helper functions used in multiple classes in stimulu/textures
 
 Part of pandastim package: https://github.com/mattdloring/pandastim
 """
-import zmq
-
 import numpy as np
-
+import zmq
 from scipy import signal
 
 
@@ -64,6 +62,7 @@ def unpack_tex(tex) -> dict:
         pass
     return vdict
 
+
 def saving(file_path: str, append=False, *other_info) -> object:
     if "\\" in file_path:
         file_path = file_path.replace("\\", "/")
@@ -95,7 +94,8 @@ def saving(file_path: str, append=False, *other_info) -> object:
     filestream.flush()
     return filestream
 
-def create_tex(input_tex_dict : dict):
+
+def create_tex(input_tex_dict: dict):
     """
     this one works with the tex_ flag header
     """
@@ -124,7 +124,8 @@ def create_tex(input_tex_dict : dict):
     }
     return texFxn(**tex_dict)
 
-def createTexture(input_tex_dict : dict):
+
+def createTexture(input_tex_dict: dict):
     """
     this one works generically from return_dict
     """
@@ -153,11 +154,14 @@ def createTexture(input_tex_dict : dict):
     }
     return texFxn(**tex_dict)
 
-def legacy2current(stim_df, tex="grating_gray", frequency=32, duration=15, stationary_time=10):
+
+def legacy2current(
+    stim_df, tex="grating_gray", frequency=32, duration=15, stationary_time=10
+):
     import inspect
 
     from pandastim.stimuli.stimulus_details import (BinocularStimulusDetails,
-                                     MonocularStimulusDetails)
+                                                    MonocularStimulusDetails)
 
     texDict = {"texture_name": tex, "frequency": frequency}
     createdTexture = createTexture(texDict)
@@ -188,6 +192,7 @@ def legacy2current(stim_df, tex="grating_gray", frequency=32, duration=15, stati
 
         stimSequence.append(stimulus)
     return stimSequence
+
 
 class Subscriber:
     """

@@ -14,7 +14,7 @@ example chaining our two previous examples together and adding binocular stimuli
 Part of pandastim package: https://github.com/mattdloring/pandastim
 """
 from pandastim import utils
-from pandastim.stimuli import stimulus_details, stimulus, textures
+from pandastim.stimuli import stimulus, stimulus_details, textures
 
 # create a texture
 sin_gray_tex = textures.SinGrayTex(
@@ -43,7 +43,9 @@ sin_red_stimulus = stimulus_details.MonocularStimulusDetails(
 )
 
 # We can create binocular by combining monocular
-combined_binoc_stim = stimulus_details.monocular2binocular(sin_gray_stimulus, sin_red_stimulus)
+combined_binoc_stim = stimulus_details.monocular2binocular(
+    sin_gray_stimulus, sin_red_stimulus
+)
 
 # or from scratch
 grate_gray_tex = textures.GratingGrayTex(texture_size=1024, frequency=32)
@@ -55,7 +57,12 @@ fresh_binoc_stim = stimulus_details.BinocularStimulusDetails(
     stationary_time=(3, 3),
     texture=(sin_gray_tex, grate_gray_tex),
 )
-all_stimuli = [sin_gray_stimulus, sin_red_stimulus, combined_binoc_stim, fresh_binoc_stim]
+all_stimuli = [
+    sin_gray_stimulus,
+    sin_red_stimulus,
+    combined_binoc_stim,
+    fresh_binoc_stim,
+]
 pstim = stimulus.OpenLoopStimulus(all_stimuli)
 
 pstim.run()

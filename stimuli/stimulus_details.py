@@ -8,6 +8,8 @@ Part of pandastim package: https://github.com/mattdloring/pandastim
 from dataclasses import dataclass
 
 from pandastim.stimuli import textures
+from pandastim import utils
+
 
 @dataclass(frozen=True)
 class StimulusDetails:
@@ -56,7 +58,6 @@ class MonocularStimulusDetails(StimulusDetails):
     def return_dict(self):
         tex_dict = utils.unpack_tex(self.texture)
         stim_dict = vars(self).copy()
-        stim_dict.pop("texture_size")
         stim_dict.pop("texture")
         return {"stimulus": stim_dict, "texture": tex_dict}
 
@@ -110,9 +111,9 @@ class BinocularStimulusDetails(StimulusDetails):
         tex1_dict = utils.unpack_tex(self.texture[1])
 
         stim_dict = vars(self).copy()
-        stim_dict.pop("texture_size")
         stim_dict.pop("texture")
         return {"stimulus": stim_dict, "texture": [tex0_dict, tex1_dict]}
+
 
 def monocular2binocular(
     monoc1: MonocularStimulusDetails,
@@ -120,7 +121,7 @@ def monocular2binocular(
     strip_width: int = 12,
     strip_angle: int = 0,
     name: str = "default",
-    ) -> BinocularStimulusDetails:
+) -> BinocularStimulusDetails:
 
     stim1_dict = vars(monoc1)
     stim2_dict = vars(monoc2)
@@ -143,3 +144,36 @@ def monocular2binocular(
         if key not in specialCases:
             new_stim_dict[key] = (stim1_dict[key], stim2_dict[key])
     return BinocularStimulusDetails(**new_stim_dict)
+
+def legacy2current(stim_df, tex="grating_gray", duration=15, stationary_time=10):
+    import inspect
+
+    texDict = {"texture_name": "grating_gray", "frequency": 48}
+    createdTexture = utils.createTexture(texDict)
+    createdTextures = (createdTexture, createdTexture) # assumes same textures
+    stimSequence = []
+    for row_n in range(len(stim_df)):
+        row = stim_df.iloc[row_n]
+        stimDict = dict(row)
+        if hasattr(stimDict["angle"], "__iter__"):
+            detail_dict = {
+                k: v
+                for k, v in stimDict.items()
+                if k in list(inspect.signature(BinocularStimulusDetails).parameters)
+            }
+
+            detail_dict["duration"] = (duration, duration)
+            detail_dict["stationary_time"] = (stationary_time, stationary_time)
+            stimulus = BinocularStimulusDetails(texture=createdTextures, **detail_dict)
+        else:
+            detail_dict = {
+                k: v
+                for k, v in stimDict.items()
+                if k in list(inspect.signature(MonocularStimulusDetails).parameters)
+            }
+            detail_dict["duration"] = duration
+            detail_dict["stationary_time"] = stationary_time
+            stimulus = MonocularStimulusDetails(texture=createdTexture, **detail_dict)
+
+        stimSequence.append(stimulus)
+    return stimSequence

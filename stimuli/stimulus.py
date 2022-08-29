@@ -11,8 +11,8 @@ Example Classes given as TexMoving and BinocularMoving -- use a sequencer for ex
 Part of pandastim package: https://github.com/mattdloring/pandastim
 """
 import json
-import sys
 import os
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -101,8 +101,8 @@ class StimulusSequencing(ShowBase):
             return move_monocular_task.done
         else:
             self.new_position = (
-                (-move_monocular_task.time) * self.current_stimulus.velocity
-            )
+                -move_monocular_task.time
+            ) * self.current_stimulus.velocity
             self.card.setTexPos(
                 self.texture_stage, self.new_position + self.center_x, self.center_y, 0
             )  # u, v, w
@@ -182,7 +182,6 @@ class StimulusSequencing(ShowBase):
 
         self.left_card.setTexture(self.left_mask_stage, self.left_mask)
 
-
         # ADD TEXTURE STAGES TO CARDS
         self.right_mask.setRamImage(self.right_mask_array)
         self.right_card.setTexture(self.right_texture_stage, tex_2)
@@ -197,7 +196,6 @@ class StimulusSequencing(ShowBase):
         )
 
         self.right_card.setTexture(self.right_mask_stage, self.right_mask)
-
 
         ### Do the transform things ###
         self.mask_transform = self.trs_transform()
@@ -369,28 +367,40 @@ class StimulusSequencing(ShowBase):
             default_params_path = (
                 Path(sys.executable)
                 .parents[0]
-                .joinpath(r"Lib\site-packages\pandastim\resources\params\default_params.json")
+                .joinpath(
+                    r"Lib\site-packages\pandastim\resources\params\default_params.json"
+                )
             )
             if os.path.exists(default_params_path):
                 with open(default_params_path) as json_file:
                     self.default_params = json.load(json_file)
             else:
                 self.default_params = None
-                logging.error('no default parameters found')
+                logging.error("no default parameters found")
         else:
             if os.path.exists(params_path):
                 with open(params_path) as json_file:
                     self.default_params = json.load(json_file)
             else:
                 self.default_params = None
-                logging.error('no default parameters found')
+                logging.error("no default parameters found")
 
         if not self.default_params:
-            self.logging.info('initializing non-loaded params')
+            self.logging.info("initializing non-loaded params")
             self.default_params = {
-                "rotation_offset": -90, "window_size": [1024, 1024], "window_position": [400, 400], "fps": 60,
-                "window_undecorated": False, "center": [0, 0], "window_foreground": True, "window_title": "Pandastim",
-                "profile_on": False, "projecting_fish": False, "hold_onfinish": True, "publish_port": 5010}
+                "rotation_offset": -90,
+                "window_size": [1024, 1024],
+                "window_position": [400, 400],
+                "fps": 60,
+                "window_undecorated": False,
+                "center": [0, 0],
+                "window_foreground": True,
+                "window_title": "Pandastim",
+                "profile_on": False,
+                "projecting_fish": False,
+                "hold_onfinish": True,
+                "publish_port": 5010,
+            }
 
     def enable_params(self):
         self.scale = np.sqrt(self.default_params["scale"])
@@ -416,13 +426,14 @@ class StimulusSequencing(ShowBase):
         self.window_props.set_foreground(self.default_params["window_foreground"])
         self.window_props.set_origin(tuple(self.default_params["window_position"]))
 
-        self.setBackgroundColor(0, 0, 0) # this makes the background true black
+        self.setBackgroundColor(0, 0, 0)  # this makes the background true black
 
         ShowBaseGlobal.base.win.requestProperties(self.window_props)
 
         if self.default_params["profile_on"]:
             PStatClient.connect()
             ShowBaseGlobal.base.setFrameRateMeter(True)
+
 
 class OpenLoopStimulus(StimulusSequencing):
     def __init__(self, stimuli, *args, **kwargs):
@@ -450,6 +461,86 @@ class OpenLoopStimulus(StimulusSequencing):
             sys.exit()
 
         self.set_stimulus()
+
+class SequencingWithPause(StimulusSequencing):
+    """
+    this one can pause
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._print_counter = 0
+
+        self.paused = False
+        self.set_stimulus()
+
+        self.accept("pause", self.pause)
+        self.accept("unpause", self.unpause)
+
+    def set_stimulus(self):
+        # match stimulus to stimulus details type
+        if not self.paused:
+            super().set_stimulus()
+            # print(self._print_counter)
+            self._print_counter += 1
+        else:
+            self.buddy.proceed_alignment()
+
+    def pause(self):
+        self.paused = True
+        if not self.current_stimulus:
+            self.buddy.proceed_alignment()
+
+    def unpause(self):
+        if self.paused:
+            self.paused = False
+            self.clear_cards()
+            self.set_stimulus()
+
+    def buddy_task(self, buddytask):
+        self.buddy.pauseStatus(self.paused)
+        self.buddy.position(self.new_position)
+        self.buddy.stimulus(self.current_stimulus)
+        self.buddy.broadcaster()
+        return buddytask.cont
+
+class ExternalStimulus(SequencingWithPause):
+    """
+    this one receives stimuli externally (from a buddy)
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.curr_id = 0
+        self.next_stimulus = None
+
+        # self.accept('p', self.pause) # for debugging purposes
+        # self.accept('u', self.unpause) # for debugging purposes
+
+        self.accept("directDriven", self.direct_stim_drive, [])
+
+    def direct_stim_drive(self, stim_details):
+        try:
+            self.clear_cards()
+            self.current_stimulus = stim_details
+            self.set_stimulus()
+        except:
+            print(f"failed to display {stim_details}")
+
+    def buddy_task(self, buddytask):
+        super().buddy_task(buddytask)
+        if not self.next_stimulus:
+            # only run this if we do not have a next stimulus
+            self.next_stimulus = self.buddy.request_stimulus()
+
+        if not self.current_stimulus and self.next_stimulus:
+            # do this if we have no current stimulus and a next stimulus exists
+            self.current_stimulus = self.next_stimulus
+            self.set_stimulus()
+            self.next_stimulus = None
+
+        return buddytask.cont
 
 
 ### TEX MOVING AND BINOCULAR MOVING FOR EXAMPLES ON HOW TO MOVE ###
@@ -754,5 +845,6 @@ class BinocularMoving(ShowBase):
         rotate = TransformState.make_rotate2d(self.stimulus_details.strip_angle)
         translate = TransformState.make_pos2d((0.5, 0.5))
         return translate.compose(rotate.compose(scale.compose(center_shift)))
+
 
 ### ENDS EXAMPLE CLASSES ###

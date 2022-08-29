@@ -5,8 +5,12 @@ Helper functions used in multiple classes in stimulu/textures
 
 Part of pandastim package: https://github.com/mattdloring/pandastim
 """
+import zmq
+
 import numpy as np
+
 from scipy import signal
+
 
 def sin_byte(X: np.array, freq: int = 1) -> np.array:
     """
@@ -59,3 +63,165 @@ def unpack_tex(tex) -> dict:
     except KeyError:
         pass
     return vdict
+
+def saving(file_path: str, append=False, *other_info) -> object:
+    if "\\" in file_path:
+        file_path = file_path.replace("\\", "/")
+
+    if not append:
+        val_offset = 0
+        newpath = file_path
+        while os.path.exists(newpath):
+            val_offset += 1
+            newpath = (
+                file_path[: file_path.rfind("/") + 1]
+                + file_path[file_path.rfind("/") + 1 :][:-4]
+                + "_"
+                + str(val_offset)
+                + ".txt"
+            )
+
+        file_path = newpath
+    print(f"Saving data to {file_path}")
+    filestream = open(file_path, "a")
+
+    info = [str(i) for i in other_info]
+    info = "_".join(info)
+    if len(info) != 0:
+        filestream.write(f"provided_info:{info}_{dt.now()}")
+    else:
+        filestream.write(f"{dt.now()}")
+
+    filestream.flush()
+    return filestream
+
+def create_tex(input_tex_dict : dict):
+    """
+    this one works with the tex_ flag header
+    """
+    import inspect
+
+    from pandastim.stimuli import textures
+
+    texture_map_dict = {
+        "rgb_field": textures.RgbTex,
+        "gray_circle": textures.CircleGrayTex,
+        "sin_gray": textures.SinGrayTex,
+        "sin_rgb": textures.SinRgbTex,
+        "grating_gray": textures.GratingGrayTex,
+        "grating_rgb": textures.GratingRgbTex,
+        "blank_tex": textures.BlankTex,
+        "circs": textures.CalibrationTriangles,
+        "radial_sin_centering": textures.RadialSinCube,
+    }
+    texFxn = texture_map_dict[input_tex_dict["tex_texture_name"]]
+    # 4: to take off the 'tex_' we added earlier
+    tex_dict = {
+        k[4:]: v
+        for k, v in input_tex_dict.items()
+        if k[4:] in list(inspect.signature(texFxn).parameters)
+        or k[4:] in list(inspect.signature(textures.TextureBase).parameters)
+    }
+    return texFxn(**tex_dict)
+
+def createTexture(input_tex_dict : dict):
+    """
+    this one works generically from return_dict
+    """
+    import inspect
+
+    from pandastim.stimuli import textures
+
+    texture_map_dict = {
+        "rgb_field": textures.RgbTex,
+        "gray_circle": textures.CircleGrayTex,
+        "sin_gray": textures.SinGrayTex,
+        "sin_rgb": textures.SinRgbTex,
+        "grating_gray": textures.GratingGrayTex,
+        "grating_rgb": textures.GratingRgbTex,
+        "blank_tex": textures.BlankTex,
+        "circs": textures.CalibrationTriangles,
+        "radial_sin_centering": textures.RadialSinCube,
+    }
+    texFxn = texture_map_dict[input_tex_dict["texture_name"]]
+
+    tex_dict = {
+        k: v
+        for k, v in input_tex_dict.items()
+        if k in list(inspect.signature(texFxn).parameters)
+        or k in list(inspect.signature(textures.TextureBase).parameters)
+    }
+    return texFxn(**tex_dict)
+
+def legacy2current(stim_df, tex="grating_gray", frequency=32, duration=15, stationary_time=10):
+    import inspect
+
+    from pandastim.stimuli.stimulus_details import (BinocularStimulusDetails,
+                                     MonocularStimulusDetails)
+
+    texDict = {"texture_name": tex, "frequency": frequency}
+    createdTexture = createTexture(texDict)
+    createdTextures = (createdTexture, createdTexture)
+    stimSequence = []
+    for row_n in range(len(stim_df)):
+        row = stim_df.iloc[row_n]
+        stimDict = dict(row)
+        if hasattr(stimDict["angle"], "__iter__"):
+            detail_dict = {
+                k: v
+                for k, v in stimDict.items()
+                if k in list(inspect.signature(BinocularStimulusDetails).parameters)
+            }
+
+            detail_dict["duration"] = (duration, duration)
+            detail_dict["stationary_time"] = (stationary_time, stationary_time)
+            stimulus = BinocularStimulusDetails(texture=createdTextures, **detail_dict)
+        else:
+            detail_dict = {
+                k: v
+                for k, v in stimDict.items()
+                if k in list(inspect.signature(MonocularStimulusDetails).parameters)
+            }
+            detail_dict["duration"] = duration
+            detail_dict["stationary_time"] = stationary_time
+            stimulus = MonocularStimulusDetails(texture=createdTexture, **detail_dict)
+
+        stimSequence.append(stimulus)
+    return stimSequence
+
+class Subscriber:
+    """
+    Subscriber wrapper class for zmq.
+    Default topic is every topic ("").
+    """
+
+    def __init__(self, port="1234", topic="", ip=None):
+        self.port = port
+        self.topic = topic
+        self.context = zmq.Context()
+        self.socket = self.context.socket(zmq.SUB)
+        if ip is not None:
+            self.socket.connect(ip + str(self.port))
+        else:
+            self.socket.connect("tcp://localhost:" + str(self.port))
+        self.socket.subscribe(self.topic)
+
+    def kill(self):
+        self.socket.close()
+        self.context.term()
+
+
+class Publisher:
+    """
+    Publisher wrapper class for zmq.
+    """
+
+    def __init__(self, port="1234"):
+        self.port = port
+        self.context = zmq.Context()
+        self.socket = self.context.socket(zmq.PUB)
+        self.socket.bind("tcp://*:" + self.port)
+
+    def kill(self):
+        self.socket.close()
+        self.context.term()

@@ -1,5 +1,6 @@
 import json
 import sys
+import time
 import threading as tr
 from datetime import datetime as dt
 from pathlib import Path
@@ -239,6 +240,13 @@ class StimulusBuddy(DirectObject.DirectObject):
 
 
 class AligningStimBuddy(StimulusBuddy):
+    '''
+
+    this lad plays nicely with the gui, they chat back and forth
+
+    for directed control use the other guy
+
+    '''
     def __init__(self, alignmentComms, runningVolumes=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -255,11 +263,6 @@ class AligningStimBuddy(StimulusBuddy):
 
         self.pThread = tr.Thread(target=self.pstart)
         self.pThread.start()
-
-    # def pstart(self):
-    #     import time
-    #     time.sleep(10)
-    #     self.proceed_alignment()
 
     def msg_reception(self):
         while self._running:
@@ -311,6 +314,106 @@ class AligningStimBuddy(StimulusBuddy):
         else:
             self.lastReturnedStim = self.pop_queue()
             return self.lastReturnedStim
+
+
+class AlignmentTyrantBuddy(StimulusBuddy):
+    '''
+    this is the alignment tyrant
+    no gui -- just runs stuff on its own
+
+    requires a supplied target image
+    '''
+    def __init__(self, walky_talky, target_image, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        from scopeslip import zmqComm
+        assert isinstance(walky_talky, zmqComm.WalkyTalky), 'walky talky must be provided'
+
+        self.wt = walky_talky
+        self.target_image = target_image
+
+class MultiSessionBuddy(AlignmentTyrantBuddy):
+    '''
+    builds on tyrant -- this one is set up to stop and restart
+    '''
+    def __init__(self, pauseHours = 4, repeats=10, um_steps=3, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.baseQueue = None # instantiate this to a copy of the queue the first time we do anything
+        self.oneoff = 0
+
+        self.pauseDuration = pauseHours
+        self.repeats = repeats # experiment repeats
+        self.n_um = um_steps
+
+    def request_stimulus(self):
+        if self.oneoff == 0:
+            self.baseQueue = self.queue.copy()
+            self.oneoff += 1
+
+        if self._pauseStatus:
+            return None
+        elif len(self.queue) == 0:
+            if self.repeats > 0:
+                self.repeats -= 1
+
+                ## minor sleep to get trailing frames
+                time.sleep(30) # 30 seconds of trailing frames
+                ### self.wt.send() ### this is command for shuttering & shit
+                self.timeHolder(self.pauseDuration)
+
+                ### DO THE BIG ALIGNMENT DOODADS ###
+                self.output(f'doing the alignment things')
+                someMovementDictionary = {
+                    0: -self.n_um * 2,
+                    1: -self.n_um,
+                    2: 0,
+                    3: self.n_um,
+                    4: self.n_um * 2,
+                }
+                self.wt.pub.socket.send(b"RESET")
+                time.sleep(1)
+                self.compStack = self.wt.gather_stack(
+                    spacing=self.n_um, reps=10
+                )
+                pa = planeAlignment.PlaneAlignment(
+                    target=self.target_image, stack=self.compStack, method="otsu"
+                )
+                self.myMatch = pa.match_calculator()
+                moveAmount = someMovementDictionary[self.myMatch]
+                self.wt.move_piezo_n(moveAmount)
+                self.output(f"alignment: status: completed with {moveAmount} movement")
+
+                self.wt.pub.socket.send(b"RESET")
+                time.sleep(1)
+                self.wt.pub.socket.send(b"s1 s3")
+                time.sleep(1)
+                self.wt.pub.socket.send(b"RUN")
+
+                ### DIRECTLY USE THE WALKYTALKY OBJECT PRESENT ###
+
+                ### DONE DOIN THE ALIGNMENT DOODADS & STUFFS ###
+
+                self.queue.extend(self.baseQueue)
+                self.lastReturnedStim = self.pop_queue()
+                return self.lastReturnedStim
+            else:
+                return None
+        else:
+            self.lastReturnedStim = self.pop_queue()
+            return self.lastReturnedStim
+    @staticmethod
+    def timeHolder(hours):
+        '''
+        this lad is a really agressive implementation of a time pause
+
+        :param hours: hours to pause for
+        :return:
+        '''
+        seconds = hours * 60 * 60
+        time.sleep(seconds)
+
+
 
 
 class GUIBuddy(StimulusBuddy):

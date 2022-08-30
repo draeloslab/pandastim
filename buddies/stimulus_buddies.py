@@ -1,7 +1,7 @@
 import json
 import sys
-import time
 import threading as tr
+import time
 from datetime import datetime as dt
 from pathlib import Path
 
@@ -240,13 +240,14 @@ class StimulusBuddy(DirectObject.DirectObject):
 
 
 class AligningStimBuddy(StimulusBuddy):
-    '''
+    """
 
     this lad plays nicely with the gui, they chat back and forth
 
     for directed control use the other guy
 
-    '''
+    """
+
     def __init__(self, alignmentComms, runningVolumes=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -317,33 +318,39 @@ class AligningStimBuddy(StimulusBuddy):
 
 
 class AlignmentTyrantBuddy(StimulusBuddy):
-    '''
+    """
     this is the alignment tyrant
     no gui -- just runs stuff on its own
 
     requires a supplied target image
-    '''
+    """
+
     def __init__(self, walky_talky, target_image, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         from scopeslip import zmqComm
-        assert isinstance(walky_talky, zmqComm.WalkyTalky), 'walky talky must be provided'
+
+        assert isinstance(
+            walky_talky, zmqComm.WalkyTalky
+        ), "walky talky must be provided"
 
         self.wt = walky_talky
         self.target_image = target_image
 
+
 class MultiSessionBuddy(AlignmentTyrantBuddy):
-    '''
+    """
     builds on tyrant -- this one is set up to stop and restart
-    '''
-    def __init__(self, pauseHours = 4, repeats=10, um_steps=3, *args, **kwargs):
+    """
+
+    def __init__(self, pauseHours=4, repeats=10, um_steps=3, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.baseQueue = None # instantiate this to a copy of the queue the first time we do anything
+        self.baseQueue = None  # instantiate this to a copy of the queue the first time we do anything
         self.oneoff = 0
 
         self.pauseDuration = pauseHours
-        self.repeats = repeats # experiment repeats
+        self.repeats = repeats  # experiment repeats
         self.n_um = um_steps
 
     def request_stimulus(self):
@@ -358,12 +365,12 @@ class MultiSessionBuddy(AlignmentTyrantBuddy):
                 self.repeats -= 1
 
                 ## minor sleep to get trailing frames
-                time.sleep(30) # 30 seconds of trailing frames
+                time.sleep(30)  # 30 seconds of trailing frames
                 ### self.wt.send() ### this is command for shuttering & shit
                 self.timeHolder(self.pauseDuration)
 
                 ### DO THE BIG ALIGNMENT DOODADS ###
-                self.output(f'doing the alignment things')
+                self.output(f"doing the alignment things")
                 someMovementDictionary = {
                     0: -self.n_um * 2,
                     1: -self.n_um,
@@ -373,9 +380,7 @@ class MultiSessionBuddy(AlignmentTyrantBuddy):
                 }
                 self.wt.pub.socket.send(b"RESET")
                 time.sleep(1)
-                self.compStack = self.wt.gather_stack(
-                    spacing=self.n_um, reps=10
-                )
+                self.compStack = self.wt.gather_stack(spacing=self.n_um, reps=10)
                 pa = planeAlignment.PlaneAlignment(
                     target=self.target_image, stack=self.compStack, method="otsu"
                 )
@@ -402,18 +407,17 @@ class MultiSessionBuddy(AlignmentTyrantBuddy):
         else:
             self.lastReturnedStim = self.pop_queue()
             return self.lastReturnedStim
+
     @staticmethod
     def timeHolder(hours):
-        '''
+        """
         this lad is a really agressive implementation of a time pause
 
         :param hours: hours to pause for
         :return:
-        '''
+        """
         seconds = hours * 60 * 60
         time.sleep(seconds)
-
-
 
 
 class GUIBuddy(StimulusBuddy):

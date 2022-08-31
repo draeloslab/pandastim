@@ -14,6 +14,17 @@ parameter_path = Path(sys.executable).parents[0].joinpath(r'Lib\site-packages\pa
 stimulus_path = Path(sys.executable).parents[0].joinpath(r'Lib\site-packages\pandastim\resources\sevenrep_17stim.hdf')
 # stimulus_path = r'C:\Soft_Kitty\Anaconda3\envs\cleanStytra\Lib\site-packages\pandastim\resources\monocFB.hdf'
 
+import argparse, os
+
+# def dir_path(string):
+#         if os.path.isdir(string):
+#                 return string
+#         else:
+#                 raise NotADirectoryError(string)
+
+parser = argparse.ArgumentParser(description='please input path')
+parser.add_argument('--path')
+
 if __name__ == '__main__':
 
         _ports = {}
@@ -25,7 +36,8 @@ if __name__ == '__main__':
 
         camera_rot = params['camera_rotation']
         roi = params['roi']
-        savedir = params['save_path']
+        args = parser.parse_args()
+        savedir = Path(args.path)
 
         stytra_process = mp.Process(target=stytra_container, args=(_ports, camera_rot, roi, savedir,))
         stimulus_process = mp.Process(target=wrapper, args=(ClosedLoopProtocol, Behavior, stimulus_path, _ports, params))

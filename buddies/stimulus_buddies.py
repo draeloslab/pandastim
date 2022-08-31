@@ -262,9 +262,6 @@ class AligningStimBuddy(StimulusBuddy):
         self.alignmentThread = tr.Thread(target=self.msg_reception)
         self.alignmentThread.start()
 
-        self.pThread = tr.Thread(target=self.pstart)
-        self.pThread.start()
-
     def msg_reception(self):
         while self._running:
             topic = self.aSub.socket.recv_string()
@@ -365,9 +362,20 @@ class MultiSessionBuddy(AlignmentTyrantBuddy):
                 self.repeats -= 1
 
                 ## minor sleep to get trailing frames
-                time.sleep(30)  # 30 seconds of trailing frames
+                time.sleep(25)  # 25 seconds of trailing frames
+                self.wt.pub.socket.send(b"RESET")
+                time.sleep(1)
+                self.wt.pub.socket.send(b"s4 shutOff")
+                time.sleep(1)
+                self.wt.pub.socket.send(b"RUN")
                 ### self.wt.send() ### this is command for shuttering & shit
                 self.timeHolder(self.pauseDuration)
+                self.wt.pub.socket.send(b"s1 s3 shutOn")
+                time.sleep(1.5)
+                self.wt.pub.socket.send(b"RESET")
+                time.sleep(1.5)
+                self.wt.pub.socket.send(b"RUN")
+                time.sleep(1.5)
 
                 ### DO THE BIG ALIGNMENT DOODADS ###
                 self.output(f"doing the alignment things")
@@ -382,7 +390,7 @@ class MultiSessionBuddy(AlignmentTyrantBuddy):
                 time.sleep(1)
                 self.compStack = self.wt.gather_stack(spacing=self.n_um, reps=10)
                 pa = planeAlignment.PlaneAlignment(
-                    target=self.target_image, stack=self.compStack, method="otsu"
+                    target=self.target_image, stack=self.compStack, method="otsu",
                 )
                 self.myMatch = pa.match_calculator()
                 moveAmount = someMovementDictionary[self.myMatch]

@@ -7,7 +7,9 @@ Part of pandastim package: https://github.com/mattdloring/pandastim
 """
 import numpy as np
 import zmq
+import os
 from scipy import signal
+from datetime import datetime as dt
 
 
 def sin_byte(X: np.array, freq: int = 1) -> np.array:

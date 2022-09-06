@@ -181,6 +181,7 @@ def legacy2current(
             detail_dict["stationary_time"] = (stationary_time, stationary_time)
             stimulus = BinocularStimulusDetails(texture=createdTextures, **detail_dict)
         else:
+            stimDict['velocity'] = float(stimDict['velocity'])
             detail_dict = {
                 k: v
                 for k, v in stimDict.items()

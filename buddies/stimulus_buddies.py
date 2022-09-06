@@ -262,9 +262,6 @@ class AligningStimBuddy(StimulusBuddy):
         self.alignmentThread = tr.Thread(target=self.msg_reception)
         self.alignmentThread.start()
 
-        self.pThread = tr.Thread(target=self.pstart)
-        self.pThread.start()
-
     def msg_reception(self):
         while self._running:
             topic = self.aSub.socket.recv_string()

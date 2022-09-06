@@ -11,7 +11,7 @@ from pathlib import Path
 
 # parameter_path = r'C:\Soft_Kitty\Anaconda3\envs\cleanStytra\Lib\site-packages\pandastim\resources\matt_rig2_exp_params.json'
 parameter_path = Path(sys.executable).parents[0].joinpath(r'Lib\site-packages\pandastim\resources\rig_params.json')
-stimulus_path = Path(sys.executable).parents[0].joinpath(r'Lib\site-packages\pandastim\resources\sevenrep_17stim.hdf')
+stimulus_path = Path(sys.executable).parents[0].joinpath(r'Lib\site-packages\pandastim\resources\sevenrep_17stim_python37.hdf')
 # stimulus_path = r'C:\Soft_Kitty\Anaconda3\envs\cleanStytra\Lib\site-packages\pandastim\resources\monocFB.hdf'
 
 import argparse, os

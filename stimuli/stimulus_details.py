@@ -16,6 +16,7 @@ class StimulusDetails:
 
     stim_name: str
 
+
 @dataclass(frozen=True)
 class MonocLite(StimulusDetails):
     stim_name: str = f"unnamed_monocular_stimulus"
@@ -28,6 +29,7 @@ class MonocLite(StimulusDetails):
     light_value: int = 255
     dark_value: int = 0
     texture_size: tuple = (1024, 1024)
+    texture_name: str = 'grating_gray'
 
     # default master for monocular stimuli -- can be passed in local usages
     master = {
@@ -39,22 +41,80 @@ class MonocLite(StimulusDetails):
         "duration": int,
         "light_value": int,
         "dark_value": int,
-        "texture_size": (int, int)
+        "texture_size": (int, int),
+        "texture_name": str
+    }
+
+    def __post_init__(self):
+        """Because python isn't static lets force things here"""
+        if self.master:
+            for k, v in self.master.items():
+                assert k in self.__dict__.keys(), f"must provide {k}"
+                if not isinstance(v, tuple) and not isinstance(v, list):
+                    assert isinstance(getattr(self, k), v), f"{k} must be type: {v}"
+                else:
+                    assert isinstance(
+                        getattr(self, k)[0], v[0]
+                    ), f"{k}0 must be type: {v}"
+                    assert isinstance(
+                        getattr(self, k)[1], v[1]
+                    ), f"{k}1 must be type: {v}"
+
+    def return_dict(self):
+        stim_dict, tex_dict = utils.packageLiteStim(self)
+        return {"stimulus": stim_dict, "texture": tex_dict}
+
+
+@dataclass(frozen=True)
+class BinocLite(StimulusDetails):
+    stim_name: str = f"unnamed_binocular_stimulus"
+
+    angle: tuple = (0, 0)
+    velocity: tuple = (0.0, 0.0)
+    stationary_time: tuple = (0., 0.)
+    duration: tuple = (-1., -1.)  # defaults to going forever
+    strip_width: int = 8
+    position: tuple = (0., 0.)
+    strip_angle: int = 0
+    light_value: tuple = (255, 255) # l, r tex
+    dark_value: tuple = (0, 0)
+    frequency: tuple = (48, 48)
+    texture_size: tuple = (1024, 1024)
+    texture_name: tuple = ('grating_gray', 'grating_gray')
+
+    master = {
+            "stim_name": str,
+            "angle": (int, int),
+            "velocity": (float, float),
+            "stationary_time": (float, float),
+            "duration": (float, float),
+            "strip_width": int,
+            "position": (float, float),
+            "strip_angle": int,
+            "light_value": (int, int),
+            "dark_value": (int, int),
+            'frequency':  (int, int),
+            'texture_size' : (int, int),
+            'texture_name' : (str, str)
+
     }
     def __post_init__(self):
         """Because python isn't static lets force things here"""
         if self.master:
             for k, v in self.master.items():
                 assert k in self.__dict__.keys(), f"must provide {k}"
-                if not hasattr(v, '__iter__'):
+                if not isinstance(v, tuple) and not isinstance(v, list):
                     assert isinstance(getattr(self, k), v), f"{k} must be type: {v}"
                 else:
-                    assert isinstance(getattr(self, k)[0], v[0]), f"{k}0 must be type: {v}"
-                    assert isinstance(getattr(self, k)[1], v[1]), f"{k}1 must be type: {v}"
-
-
-@dataclass(frozen=True)
-class BinocLite(StimulusDetails):
+                    assert isinstance(
+                        getattr(self, k)[0], v[0]
+                    ), f"{k}0 must be type: {v}"
+                    assert isinstance(
+                        getattr(self, k)[1], v[1]
+                    ), f"{k}1 must be type: {v}"
+    def return_dict(self):
+        stim_dict, tex_dict = utils.packageLiteStim(self)
+        return {"stimulus": stim_dict, "texture": tex_dict}
 
 
 @dataclass(frozen=True)

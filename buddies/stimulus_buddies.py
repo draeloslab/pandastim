@@ -390,7 +390,9 @@ class MultiSessionBuddy(AlignmentTyrantBuddy):
                 time.sleep(1)
                 self.compStack = self.wt.gather_stack(spacing=self.n_um, reps=10)
                 pa = planeAlignment.PlaneAlignment(
-                    target=self.target_image, stack=self.compStack, method="otsu",
+                    target=self.target_image,
+                    stack=self.compStack,
+                    method="otsu",
                 )
                 self.myMatch = pa.match_calculator()
                 moveAmount = someMovementDictionary[self.myMatch]

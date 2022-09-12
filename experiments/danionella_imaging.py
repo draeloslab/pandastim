@@ -2,12 +2,11 @@
 kaitlyn imaging session with DC larvae
 using a pre-saved h5 file containing stim sequence to run an openloop experiment
 """
-import pandas as pd
-
 import multiprocessing as mp
 import sys
 from pathlib import Path
 
+import pandas as pd
 import qdarkstyle
 from PyQt5.Qt import QApplication
 from scopeslip import zmqComm
@@ -16,6 +15,7 @@ from scopeslip.gui import alignment_gui
 from pandastim import utils
 from pandastim.buddies import stimulus_buddies
 from pandastim.stimuli import stimulus, stimulus_details
+
 
 def pandastim_wrapper(alignment_comms):
     # you could change this to do the saving and the stuff
@@ -35,7 +35,7 @@ def pandastim_wrapper(alignment_comms):
         alignmentComms=alignment_comms,
         default_params_path=paramspath,
         outputMethod="zmq",
-        savePath=save_path
+        savePath=save_path,
     )
 
     # this uses stimulusBuddy to run open loop experiments
@@ -47,7 +47,7 @@ def pandastim_wrapper(alignment_comms):
         )
     )
 
-    #inputStimuli = inputStimuli.loc[:139]  # in this case after 139 is blanks and repeats
+    # inputStimuli = inputStimuli.loc[:139]  # in this case after 139 is blanks and repeats
     stimSequence = utils.legacy2current(
         inputStimuli
     )  # this converts the saved sequence into stim types
@@ -57,6 +57,7 @@ def pandastim_wrapper(alignment_comms):
     pstim = stimulus.ExternalStimulus(buddy=stimBuddy, params_path=paramspath)
 
     pstim.run()
+
 
 def alignment_wrapper(alignment_comms):
     app = QApplication([])
@@ -73,6 +74,7 @@ def alignment_wrapper(alignment_comms):
     )
     pa.show()
     app.exec()
+
 
 if __name__ == "__main__":
 

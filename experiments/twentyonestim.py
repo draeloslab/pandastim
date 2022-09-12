@@ -1,23 +1,17 @@
+import multiprocessing as mp
 import sys
 from pathlib import Path
 
 import pandas as pd
-
+import qdarkstyle
+from PyQt5.Qt import QApplication
 from scopeslip import zmqComm
 from scopeslip.gui import alignment_gui
-
 from tifffile import imread
 
 from pandastim import utils
 from pandastim.buddies import stimulus_buddies
 from pandastim.stimuli import stimulus
-
-from pathlib import Path
-from PyQt5.Qt import QApplication
-
-import qdarkstyle
-
-import multiprocessing as mp
 
 
 def pstimWrapper(alignmentPorts):
@@ -43,7 +37,9 @@ def pstimWrapper(alignmentPorts):
     inputStimuli = pd.read_hdf(
         Path(sys.executable)
         .parents[0]
-        .joinpath(r"Lib\site-packages\pandastim\resources\protocols\sevenrep_twentyonestim.hdf")
+        .joinpath(
+            r"Lib\site-packages\pandastim\resources\protocols\sevenrep_twentyonestim.hdf"
+        )
     )
     inputStimuli = inputStimuli.loc[:139]
     stimSequence = utils.legacy2current(inputStimuli)
@@ -62,7 +58,9 @@ def alignmentWrapper(alignmentPort):
     myWalky = zmqComm.WalkyTalky(
         outputPort="5005", inputIP="tcp://10.122.170.21:", inputPort="4701"
     )
-    pa = alignment_gui.PlaneAligner(walkytalky=myWalky, stimBuddyPorts=alignmentPort, resetMode=False)
+    pa = alignment_gui.PlaneAligner(
+        walkytalky=myWalky, stimBuddyPorts=alignmentPort, resetMode=False
+    )
     pa.show()
     app.exec()
 

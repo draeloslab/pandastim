@@ -8,7 +8,6 @@ Part of pandastim package: https://github.com/mattdloring/pandastim
 from dataclasses import dataclass
 
 from pandastim import utils
-from pandastim.stimuli import textures
 
 
 @dataclass(frozen=True)
@@ -16,6 +15,46 @@ class StimulusDetails:
     """Contains details about a given stimulus"""
 
     stim_name: str
+
+@dataclass(frozen=True)
+class MonocLite(StimulusDetails):
+    stim_name: str = f"unnamed_monocular_stimulus"
+
+    angle: int = 0
+    velocity: float = 0.0
+    frequency: int = 60
+    stationary_time: int = 0
+    duration: int = -1  # defaults to going forever
+    light_value: int = 255
+    dark_value: int = 0
+    texture_size: tuple = (1024, 1024)
+
+    # default master for monocular stimuli -- can be passed in local usages
+    master = {
+        "stim_name": str,
+        "angle": int,
+        "velocity": float,
+        "frequency": int,
+        "stationary_time": int,
+        "duration": int,
+        "light_value": int,
+        "dark_value": int,
+        "texture_size": (int, int)
+    }
+    def __post_init__(self):
+        """Because python isn't static lets force things here"""
+        if self.master:
+            for k, v in self.master.items():
+                assert k in self.__dict__.keys(), f"must provide {k}"
+                if not hasattr(v, '__iter__'):
+                    assert isinstance(getattr(self, k), v), f"{k} must be type: {v}"
+                else:
+                    assert isinstance(getattr(self, k)[0], v[0]), f"{k}0 must be type: {v}"
+                    assert isinstance(getattr(self, k)[1], v[1]), f"{k}1 must be type: {v}"
+
+
+@dataclass(frozen=True)
+class BinocLite(StimulusDetails):
 
 
 @dataclass(frozen=True)
@@ -25,6 +64,8 @@ class MonocularStimulusDetails(StimulusDetails):
     General implementation assumes duration is full time, stationary time is therefore a subset of that time
     ex: 2 s statonary and 10 s duration runs a total of 10 seconds
     """
+
+    from pandastim.stimuli import textures
 
     # required
     angle: int = 0
@@ -69,6 +110,8 @@ class BinocularStimulusDetails(StimulusDetails):
     This default implementation assumes the two textures are equal in size -- will likley run with nonequal sizes
     but may look wonk
     """
+
+    from pandastim.stimuli import textures
 
     # required
     angle: tuple = (0, 0)

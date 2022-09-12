@@ -29,7 +29,7 @@ class MonocLite(StimulusDetails):
     light_value: int = 255
     dark_value: int = 0
     texture_size: tuple = (1024, 1024)
-    texture_name: str = 'grating_gray'
+    texture_name: str = "grating_gray"
 
     # default master for monocular stimuli -- can be passed in local usages
     master = {
@@ -37,12 +37,12 @@ class MonocLite(StimulusDetails):
         "angle": int,
         "velocity": float,
         "frequency": int,
-        "stationary_time": int,
-        "duration": int,
+        "stationary_time": float,
+        "duration": float,
         "light_value": int,
         "dark_value": int,
         "texture_size": (int, int),
-        "texture_name": str
+        "texture_name": str,
     }
 
     def __post_init__(self):
@@ -71,33 +71,33 @@ class BinocLite(StimulusDetails):
 
     angle: tuple = (0, 0)
     velocity: tuple = (0.0, 0.0)
-    stationary_time: tuple = (0., 0.)
-    duration: tuple = (-1., -1.)  # defaults to going forever
+    stationary_time: tuple = (0.0, 0.0)
+    duration: tuple = (-1.0, -1.0)  # defaults to going forever
     strip_width: int = 8
-    position: tuple = (0., 0.)
+    position: tuple = (0.0, 0.0)
     strip_angle: int = 0
-    light_value: tuple = (255, 255) # l, r tex
+    light_value: tuple = (255, 255)  # l, r tex
     dark_value: tuple = (0, 0)
     frequency: tuple = (48, 48)
     texture_size: tuple = (1024, 1024)
-    texture_name: tuple = ('grating_gray', 'grating_gray')
+    texture_name: tuple = ("grating_gray", "grating_gray")
 
     master = {
-            "stim_name": str,
-            "angle": (int, int),
-            "velocity": (float, float),
-            "stationary_time": (float, float),
-            "duration": (float, float),
-            "strip_width": int,
-            "position": (float, float),
-            "strip_angle": int,
-            "light_value": (int, int),
-            "dark_value": (int, int),
-            'frequency':  (int, int),
-            'texture_size' : (int, int),
-            'texture_name' : (str, str)
-
+        "stim_name": str,
+        "angle": (int, int),
+        "velocity": (float, float),
+        "stationary_time": (float, float),
+        "duration": (float, float),
+        "strip_width": int,
+        "position": (float, float),
+        "strip_angle": int,
+        "light_value": (int, int),
+        "dark_value": (int, int),
+        "frequency": (int, int),
+        "texture_size": (int, int),
+        "texture_name": (str, str),
     }
+
     def __post_init__(self):
         """Because python isn't static lets force things here"""
         if self.master:
@@ -112,6 +112,7 @@ class BinocLite(StimulusDetails):
                     assert isinstance(
                         getattr(self, k)[1], v[1]
                     ), f"{k}1 must be type: {v}"
+
     def return_dict(self):
         stim_dict, tex_dict = utils.packageLiteStim(self)
         return {"stimulus": stim_dict, "texture": tex_dict}

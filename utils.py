@@ -197,57 +197,57 @@ def legacy2current(
         stimSequence.append(stimulus)
     return stimSequence
 
+
 def packageLiteStim(stimDetails):
     match type(stimDetails).__name__:
-        case 'MonocLite':
+        case "MonocLite":
             stimDict = {
-                'stim_name' : stimDetails.stim_name,
-                'angle' : stimDetails.angle,
-                'velocity' : stimDetails.velocity,
-                'stationary_time' : stimDetails.stationary_time,
-                'duration' : stimDetails.duration
-
+                "stim_name": stimDetails.stim_name,
+                "angle": stimDetails.angle,
+                "velocity": stimDetails.velocity,
+                "stationary_time": stimDetails.stationary_time,
+                "duration": stimDetails.duration,
             }
             texDict = {
-                'frequency' : stimDetails.frequency,
-                'light_value' : stimDetails.light_value,
-                'dark_value' : stimDetails.dark_value,
-                'texture_size' : stimDetails.texture_size,
-                'texture_name' : stimDetails.texture_name
+                "frequency": stimDetails.frequency,
+                "light_value": stimDetails.light_value,
+                "dark_value": stimDetails.dark_value,
+                "texture_size": stimDetails.texture_size,
+                "texture_name": stimDetails.texture_name,
             }
             return stimDict, texDict
-        case 'BinocLite':
+        case "BinocLite":
             stimDict = {
-                'stim_name' : stimDetails.stim_name,
-                'angle' : stimDetails.angle,
-                'velocity' : stimDetails.velocity,
-                'stationary_time' : stimDetails.stationary_time,
-                'duration' : stimDetails.duration,
-                'strip_width': stimDetails.strip_width,
-                'position' : stimDetails.position,
-                'strip_angle' :stimDetails.strip_angle
-
+                "stim_name": stimDetails.stim_name,
+                "angle": stimDetails.angle,
+                "velocity": stimDetails.velocity,
+                "stationary_time": stimDetails.stationary_time,
+                "duration": stimDetails.duration,
+                "strip_width": stimDetails.strip_width,
+                "position": stimDetails.position,
+                "strip_angle": stimDetails.strip_angle,
             }
             texDict = [
                 {
-                'frequency' : stimDetails.frequency[0],
-                'light_value' : stimDetails.light_value[0],
-                'dark_value' : stimDetails.dark_value[0],
-                'texture_size' : stimDetails.texture_size,
-                'texture_name' : stimDetails.texture_name[0]
+                    "frequency": stimDetails.frequency[0],
+                    "light_value": stimDetails.light_value[0],
+                    "dark_value": stimDetails.dark_value[0],
+                    "texture_size": stimDetails.texture_size,
+                    "texture_name": stimDetails.texture_name[0],
                 },
                 {
-                    'frequency' : stimDetails.frequency[1],
-                    'light_value' : stimDetails.light_value[1],
-                    'dark_value' : stimDetails.dark_value[1],
-                    'texture_size' : stimDetails.texture_size,
-                    'texture_name' : stimDetails.texture_name[1]
+                    "frequency": stimDetails.frequency[1],
+                    "light_value": stimDetails.light_value[1],
+                    "dark_value": stimDetails.dark_value[1],
+                    "texture_size": stimDetails.texture_size,
+                    "texture_name": stimDetails.texture_name[1],
                 },
             ]
 
             return stimDict, texDict
         case _:
-            print(f'{type(stimDetails).__name__} stimulus type not understood')
+            print(f"{type(stimDetails).__name__} stimulus type not understood")
+
 
 class Subscriber:
     """

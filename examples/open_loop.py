@@ -26,8 +26,9 @@ sin_gray_stimulus = stimulus_details.MonocularStimulusDetails(
     texture=sin_gray_tex,
     angle=33,
     velocity=0.05,
-    stationary_time=2,
-    duration=5,
+    stationary_time=3,
+    duration=8,
+    hold_after=6.,
     stim_name="moving_gray",
 )
 # create a different texture
@@ -53,8 +54,9 @@ fresh_binoc_stim = stimulus_details.BinocularStimulusDetails(
     stim_name="wholefield_right",
     angle=(90, 90),
     velocity=(0.1, 0.1),
-    duration=(10, 10),
+    duration=(11, 11),
     stationary_time=(3, 3),
+    hold_after=(5,8),
     texture=(sin_gray_tex, grate_gray_tex),
 )
 all_stimuli = [

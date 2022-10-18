@@ -9,6 +9,7 @@ from dataclasses import dataclass
 
 from pandastim import utils
 
+import numpy as np
 
 @dataclass(frozen=True)
 class StimulusDetails:
@@ -26,6 +27,7 @@ class MonocLite(StimulusDetails):
     frequency: int = 60
     stationary_time: int = 0
     duration: int = -1  # defaults to going forever
+    hold_after: float = np.nan
     light_value: int = 255
     dark_value: int = 0
     texture_size: tuple = (1024, 1024)
@@ -38,6 +40,7 @@ class MonocLite(StimulusDetails):
         "velocity": float,
         "frequency": int,
         "stationary_time": float,
+        "hold_after" : float,
         "duration": float,
         "light_value": int,
         "dark_value": int,
@@ -73,6 +76,7 @@ class BinocLite(StimulusDetails):
     velocity: tuple = (0.0, 0.0)
     stationary_time: tuple = (0.0, 0.0)
     duration: tuple = (-1.0, -1.0)  # defaults to going forever
+    hold_after: tuple = (np.nan, np.nan)
     strip_width: int = 8
     position: tuple = (0.0, 0.0)
     strip_angle: int = 0
@@ -88,6 +92,7 @@ class BinocLite(StimulusDetails):
         "velocity": (float, float),
         "stationary_time": (float, float),
         "duration": (float, float),
+        "hold_after": (float, float),
         "strip_width": int,
         "position": (float, float),
         "strip_angle": int,
@@ -135,6 +140,7 @@ class MonocularStimulusDetails(StimulusDetails):
     # defaults
     stationary_time: int = 0
     duration: int = -1  # defaults to going forever
+    hold_after: float = np.nan
 
     # default texture is a grating, because why not
     texture: textures.TextureBase = textures.GratingGrayTex()
@@ -147,6 +153,7 @@ class MonocularStimulusDetails(StimulusDetails):
         "velocity": float,
         "stationary_time": int,
         "duration": int,
+        "hold_after" : float,
         "texture": textures.TextureBase,
     }
 
@@ -181,6 +188,7 @@ class BinocularStimulusDetails(StimulusDetails):
     # defaults
     stationary_time: tuple = (0, 0)
     duration: tuple = (-1, -1)  # defaults to going forever
+    hold_after: tuple = (np.nan, np.nan)
     strip_width: int = 8
     position: tuple = (0, 0)
     strip_angle: int = 0
@@ -196,6 +204,7 @@ class BinocularStimulusDetails(StimulusDetails):
         "angle": tuple,
         "velocity": tuple,
         "stationary_time": tuple,
+        "hold_after" : tuple,
         "duration": tuple,
         "strip_width": int,
         "position": tuple,

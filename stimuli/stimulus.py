@@ -99,6 +99,8 @@ class StimulusSequencing(ShowBase):
             self.clear_cards()
             self.new_position = 0
             return move_monocular_task.done
+        elif not np.isnan(self.current_stimulus.hold_after) and move_monocular_task.time >= self.current_stimulus.hold_after:
+            pass
         else:
             self.new_position = (
                 -move_monocular_task.time
@@ -235,6 +237,8 @@ class StimulusSequencing(ShowBase):
             else:
                 self.left_card.detach_node()
                 new_position_left = None
+        elif not np.isnan(self.current_stimulus.hold_after[0]) and move_binocular_task.time >= self.current_stimulus.hold_after[0]:
+            new_position_left = self.new_position[0]
         else:
             new_position_left = (
                 -move_binocular_task.time * self.current_stimulus.velocity[0] * 2
@@ -255,6 +259,8 @@ class StimulusSequencing(ShowBase):
             else:
                 self.right_card.detach_node()
                 new_position_right = None
+        elif not np.isnan(self.current_stimulus.hold_after[1]) and move_binocular_task.time >= self.current_stimulus.hold_after[1]:
+            new_position_right = self.new_position[1]
         else:
             new_position_right = (
                 -move_binocular_task.time * self.current_stimulus.velocity[1] * 2
@@ -401,6 +407,7 @@ class StimulusSequencing(ShowBase):
                 "hold_onfinish": True,
                 "publish_port": 5010,
             }
+
 
     def enable_params(self):
         self.scale = np.sqrt(self.default_params["scale"])

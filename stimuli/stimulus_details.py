@@ -7,9 +7,10 @@ Part of pandastim package: https://github.com/mattdloring/pandastim
 """
 from dataclasses import dataclass
 
+import numpy as np
+
 from pandastim import utils
 
-import numpy as np
 
 @dataclass(frozen=True)
 class StimulusDetails:
@@ -40,7 +41,7 @@ class MonocLite(StimulusDetails):
         "velocity": float,
         "frequency": int,
         "stationary_time": float,
-        "hold_after" : float,
+        "hold_after": float,
         "duration": float,
         "light_value": int,
         "dark_value": int,
@@ -153,7 +154,7 @@ class MonocularStimulusDetails(StimulusDetails):
         "velocity": float,
         "stationary_time": int,
         "duration": int,
-        "hold_after" : float,
+        "hold_after": float,
         "texture": textures.TextureBase,
     }
 
@@ -204,7 +205,7 @@ class BinocularStimulusDetails(StimulusDetails):
         "angle": tuple,
         "velocity": tuple,
         "stationary_time": tuple,
-        "hold_after" : tuple,
+        "hold_after": tuple,
         "duration": tuple,
         "strip_width": int,
         "position": tuple,

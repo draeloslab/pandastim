@@ -313,6 +313,55 @@ class AligningStimBuddy(StimulusBuddy):
             self.lastReturnedStim = self.pop_queue()
             return self.lastReturnedStim
 
+    def input(self):
+        print(f"StimulusBuddy listening on {self.subscriber.port}")
+        while self._running:
+            topic = self.subscriber.socket.recv_string()
+            data = self.subscriber.socket.recv_pyobj()
+            # print(topic)
+
+            match topic:
+                case "stim":
+                    try:
+                        if not isinstance(data["texture"], dict):
+                            input_texture_0 = utils.createTexture(data["texture"][0])
+                            input_texture_1 = utils.createTexture(data["texture"][1])
+
+                        else:
+                            input_texture = utils.createTexture(data["texture"])
+
+                    except Exception as e:
+                        print(e)
+                        print(f"failed to create texture {data}")
+
+                    try:
+                        if not isinstance(data["texture"], dict):
+                            input_stimulus = stimulus_details.BinocularStimulusDetails(
+                                texture=(input_texture_0, input_texture_1),
+                                **data["stimulus"],
+                            )
+                        else:
+                            input_stimulus = stimulus_details.MonocularStimulusDetails(
+                                texture=input_texture, **data["stimulus"]
+                            )
+
+                        self.queue.append(input_stimulus)
+                        if self.receipts:
+                            self.output(
+                                f"pstimReceipts: queueAddition: {input_stimulus.return_dict()}"
+                            )
+                        # print(f'added stimulus to queue: {input_stimulus}')
+                    except Exception as e:
+                        print(e)
+                        print(f"failed to initialize stimulus {data}")
+                        if self.receipts:
+                            self.output(f"pstimReceipts: ERROR: {e}")
+                case "move":
+                    self.aPub.socket.send_string(f"stimbuddy", zmq.SNDMORE)
+                    self.aPub.socket.send_pyobj(["move", data])
+                case _:
+                    print(f"message {topic} not understood")
+
 
 class AlignmentTyrantBuddy(StimulusBuddy):
     """

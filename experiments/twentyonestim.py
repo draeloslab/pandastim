@@ -49,7 +49,6 @@ def pstimWrapper(alignmentPorts):
 
     pstim.run()
 
-
 def alignmentWrapper(alignmentPort):
     app = QApplication([])
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())

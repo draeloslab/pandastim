@@ -28,7 +28,7 @@ sin_gray_stimulus = stimulus_details.MonocularStimulusDetails(
     velocity=0.05,
     stationary_time=3,
     duration=8,
-    hold_after=6.,
+    hold_after=6.0,
     stim_name="moving_gray",
 )
 # create a different texture
@@ -56,15 +56,20 @@ fresh_binoc_stim = stimulus_details.BinocularStimulusDetails(
     velocity=(0.1, 0.1),
     duration=(11, 11),
     stationary_time=(3, 3),
-    hold_after=(5,8),
+    hold_after=(0., 0.),
     texture=(sin_gray_tex, grate_gray_tex),
 )
+
 all_stimuli = [
     sin_gray_stimulus,
     sin_red_stimulus,
     combined_binoc_stim,
     fresh_binoc_stim,
 ]
+
+
 pstim = stimulus.OpenLoopStimulus(all_stimuli)
 
 pstim.run()
+
+#%%

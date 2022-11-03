@@ -56,7 +56,7 @@ fresh_binoc_stim = stimulus_details.BinocularStimulusDetails(
     velocity=(0.1, 0.1),
     duration=(11, 11),
     stationary_time=(3, 3),
-    hold_after=(0., 0.),
+    hold_after=(0.0, 0.0),
     texture=(sin_gray_tex, grate_gray_tex),
 )
 

@@ -4,13 +4,13 @@ from pathlib import Path
 from pandastim.buddies import stimulus_buddies
 from pandastim.stimuli import stimulus, stimulus_details
 
-mySavePath = r"C:\data\pstim_stimuli\matt_output.txt"
-# mySavePath = r"C:\Users\matt_analysis\Downloads\matt_output.txt"
+# mySavePath = r"C:\data\pstim_stimuli\matt_output.txt"
+mySavePath = r"C:\Users\matt_analysis\Downloads\matt_output.txt"
 
 paramspath = (
     Path(sys.executable)
     .parents[0]
-    .joinpath(r"Lib\site-packages\pandastim\resources\params\improv_params.json")
+    .joinpath(r"Lib\site-packages\pandastim\resources\params\default_params.json")
 )
 
 stimBuddy = stimulus_buddies.StimulusBuddy(
@@ -33,14 +33,15 @@ class localStim(stimulus.ExternalStimulus):
         self.accept("m", self.trigger_motion)
 
     def trigger_motion(self):
-        self.clear_cards()
+        self.clear_cards(setBase=False)
         self.current_stimulus = self.motionStim
         self.set_stimulus()
 
-    def clear_cards(self):
+    def clear_cards(self, setBase=True):
         super().clear_cards()
-        self.current_stimulus = self.baseStim
-        self.set_stimulus()
+        if setBase:
+            self.current_stimulus = self.baseStim
+            self.set_stimulus()
 
 
 pstim = localStim(buddy=stimBuddy, params_path=paramspath)

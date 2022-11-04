@@ -2,8 +2,8 @@
 <img align = "right" width = "120" src=".\resources\omr_sin_example.png ">
 
 
-# Legacy pandastim runs sans-stimbuddy on behavior rigs and such
-# Live exists as fake "static typing" and requires python 3.10+
+###  Legacy pandastim runs sans-stimbuddy on behavior rigs and such
+###  Live exists as fake "static typing" and requires python 3.10+
 
 
 

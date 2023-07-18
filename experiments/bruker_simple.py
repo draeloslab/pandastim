@@ -19,13 +19,14 @@ def pstimWrapper():
     mySavePath = r"E:\Pstim\test_output.txt"
 
     # parameters necessary for ROI to pop up, probably don't need to change
+    # here you can change the size of the ROI, the rotation of the window, location of window, etc
     paramspath = (
         Path(sys.executable)
         .parents[0]
         .joinpath(r"Lib\site-packages\pandastim\resources\params\default_params.json")
     )
 
-    # handles communication with the default parameters, don't need to change
+    # handles communication with the default parameters necessary to save data, don't need to change
     stimBuddy = stimulus_buddies.StimulusBuddy(
         reporting="onMotion",
         default_params_path=paramspath,
@@ -37,15 +38,16 @@ def pstimWrapper():
     inputStimuli = pd.read_hdf(
         Path(sys.executable)
         .parents[0]
-        .joinpath(r"Lib\site-packages\pandastim\resources\protocols\medial_right.hdf"
+        .joinpath(
+            r"Lib\site-packages\pandastim\resources\protocols\twentyonestim_new.hdf"
             # r"Lib\site-packages\pandastim\resources\protocols\sevenrep_twentyonestim.hdf"
         )
     )
     # can augment your pstim file here in any way you want
-    #inputStimuli = inputStimuli.loc[:139]
+    inputStimuli = inputStimuli.loc[:200]
 
     # set duration and stationary time here
-    stimSequence = utils.legacy2current(inputStimuli, duration=100000, stationary_time=5)
+    stimSequence = utils.generate_stimSequence(inputStimuli)
     stimBuddy.queue = stimSequence
 
     pstim = stimulus.ExternalStimulus(buddy=stimBuddy, params_path=paramspath)

@@ -119,7 +119,7 @@ class RgbTex(TextureBase):
     full-field color
     """
 
-    def __init__(self, color=(0, 255, 0), texture_name="rgb_field", *args, **kwargs):
+    def __init__(self, color=(255, 0, 0), texture_name="rgb_field", *args, **kwargs):
         self.color = color
         super().__init__(texture_name=texture_name, *args, **kwargs)
 

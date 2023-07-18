@@ -182,6 +182,7 @@ def legacy2current(
 
             detail_dict["duration"] = (duration, duration)
             detail_dict["stationary_time"] = (stationary_time, stationary_time)
+
             stimulus = BinocularStimulusDetails(texture=createdTextures, **detail_dict)
         else:
             stimDict["velocity"] = float(stimDict["velocity"])
@@ -192,10 +193,56 @@ def legacy2current(
             }
             detail_dict["duration"] = duration
             detail_dict["stationary_time"] = stationary_time
+
             stimulus = MonocularStimulusDetails(texture=createdTexture, **detail_dict)
 
         stimSequence.append(stimulus)
     return stimSequence
+
+
+def generate_stimSequence(
+    stim_df
+):
+    import inspect
+
+    from pandastim.stimuli.stimulus_details import (BinocularStimulusDetails,
+                                                    MonocularStimulusDetails)
+
+    stimSequence = []
+    for row_n in range(len(stim_df)):
+        row = stim_df.iloc[row_n]
+        stimDict = dict(row)
+
+        texDict = {"texture_name": stimDict["tex"], "frequency": stimDict["freq"]}
+        createdTexture = createTexture(texDict)
+        createdTextures = (createdTexture, createdTexture)
+
+        if hasattr(stimDict["angle"], "__iter__"): #binocular stim
+            detail_dict = {
+                k: v
+                for k, v in stimDict.items()
+                if k in list(inspect.signature(BinocularStimulusDetails).parameters)
+            }
+
+            detail_dict["duration"] = (stimDict["duration"], stimDict["duration"])
+            detail_dict["stationary_time"] = (stimDict["stationary_time"], stimDict["stationary_time"])
+
+            stimulus = BinocularStimulusDetails(texture=createdTextures, **detail_dict)
+        else: #monocular stim
+            stimDict["velocity"] = float(stimDict["velocity"])
+            detail_dict = {
+                k: v
+                for k, v in stimDict.items()
+                if k in list(inspect.signature(MonocularStimulusDetails).parameters)
+            }
+            detail_dict["duration"] = int(stimDict["duration"])
+            detail_dict["stationary_time"] = int(stimDict["stationary_time"])
+
+            stimulus = MonocularStimulusDetails(texture=createdTexture, **detail_dict)
+
+        stimSequence.append(stimulus)
+    return stimSequence
+
 
 
 def packageLiteStim(stimDetails):

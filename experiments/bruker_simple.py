@@ -14,31 +14,31 @@ from pandastim.buddies import stimulus_buddies
 from pandastim.stimuli import stimulus
 
 
-def pstimWrapper(alignmentPorts):
+def pstimWrapper():
+    # 1 - edit your save path here
     mySavePath = r"E:\Pstim\test_output.txt"
 
-    # handles communication from improv
-    pstim_comms = {"topic": "stim", "port": "5006", "ip": r"tcp://10.122.170.169:"}
+    # parameters necessary for ROI to pop up, probably don't need to change
     paramspath = (
         Path(sys.executable)
         .parents[0]
         .joinpath(r"Lib\site-packages\pandastim\resources\params\default_params.json")
     )
-    # handles communication with alignment gui
-    stimBuddy = stimulus_buddies.AligningStimBuddy(
+
+    # handles communication with the default parameters, don't need to change
+    stimBuddy = stimulus_buddies.StimulusBuddy(
         reporting="onMotion",
-        pstim_comms=pstim_comms,
-        alignmentComms=alignmentPorts,
         default_params_path=paramspath,
         outputMethod="zmq",
         savePath=mySavePath,
     )
+
     # this uses stimulusBuddy to run open loop experiments
     inputStimuli = pd.read_hdf(
         Path(sys.executable)
         .parents[0]
         .joinpath(r"Lib\site-packages\pandastim\resources\protocols\medial_right.hdf"
-            # r"Lib\site-packages\pandastim\resources\protocols\sevenrep_twentyonestim.hdf" 
+            # r"Lib\site-packages\pandastim\resources\protocols\sevenrep_twentyonestim.hdf"
         )
     )
     # can augment your pstim file here in any way you want
@@ -52,29 +52,10 @@ def pstimWrapper(alignmentPorts):
 
     pstim.run()
 
-
-def alignmentWrapper(alignmentPort):
-    app = QApplication([])
-    app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-
-    # handles communication with labview
-    myWalky = zmqComm.WalkyTalky(
-        outputPort="5005", inputIP="tcp://10.122.170.21:", inputPort="4701"
-    )
-    pa = alignment_gui.PlaneAligner(
-        walkytalky=myWalky, stimBuddyPorts=alignmentPort, resetMode=False
-    )
-    pa.show()
-    app.exec()
-
-
 if __name__ == "__main__":
 
-    alignment_ports = {"wt_output": "5015", "wt_input": "5016"}
-
     _processes = [pstimWrapper]
-    #_processes = [pstimWrapper, alignmentWrapper]
 
-    processes = [mp.Process(target=p, args=(alignment_ports,)) for p in _processes]
+    processes = [mp.Process(target=p) for p in _processes]
     [p.start() for p in processes]
     [p.join() for p in processes]

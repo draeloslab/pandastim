@@ -39,8 +39,8 @@ def pstimWrapper():
         Path(sys.executable)
         .parents[0]
         .joinpath(
-            r"Lib\site-packages\pandastim\resources\protocols\twentyonestim_new.hdf"
-            # r"Lib\site-packages\pandastim\resources\protocols\sevenrep_twentyonestim.hdf"
+            # r"Lib\site-packages\pandastim\resources\protocols\twentyonestim_new.hdf"
+            r"Lib\site-packages\pandastim\resources\protocols\medial_right.hdf"
         )
     )
     # can augment your pstim file here in any way you want

@@ -1,5 +1,6 @@
-# No Longer maintained here
-please navigate to https://github.com/Naumann-Lab/pandastim
+# This branch exists on the behavior rigs without the stimbuddy additions 
+This is partly due to stytra existing in python 3.7-3.9 and stimbuddy requiring 3.10+
+
 
 
 # pandastim
@@ -24,7 +25,7 @@ please navigate to https://github.com/Naumann-Lab/pandastim
 
 
 
-### Most up to date live stimulus updating and "statically typed" stimulus classes derived from dev branch. Behavior still lives on main
+### Most up to date live stimulus updating and "statically typed" stimulus classes derived on main.
 --also note: dev branch upgrades requirement to python 3.10
 
 
@@ -40,9 +41,16 @@ This assumes you are using Anaconda and Python 3:
     conda install numpy scipy matplotlib zeromq
     pip install panda3d zmq pandas qdarkstyle
 
+#### For running with behavior you will also need to install Stytra, then the spinnaker sdk
+
+then update numba packages
+
+    pip install --ignore-installed llvmlite
+    pip install -U numba
+
 Once you've got your environment squared away, you can install pandastim by heading to the directory where you want it installed, and run:    
 
-    git clone https://github.com/mattdloring/pandastim.git
+    git clone https://github.com/Naumann-Lab/pandastim.git
 
 To test the installation, try running one of the examples in [examples/readme.md](examples/readme.md). Since panda3d is sometimes fickle with IDEs, I always run scripts from the command line (e.g., `python -m examples.drifting_binocular_grating` if you are in the `pandastim` directory).
 

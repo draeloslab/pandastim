@@ -48,7 +48,7 @@ def pstimWrapper(pstim_save_path):
         )
     )
     # can augment your pstim file here in any way you want
-    inputStimuli = inputStimuli.loc[:1]
+    inputStimuli = inputStimuli.loc[:20]
 
     # this will generate your stimulus sequence to be sent in the right datastructure
     stimSequence = utils.generate_stimSequence(inputStimuli)
@@ -71,24 +71,27 @@ if __name__ == "__main__": #allows the file to be run directly
     print('save path set')
     pl.SendScriptCommands("-SetSavePath {}".format(imaging_dir))
 
-    ## need to start my imaging here ##
-    no_planes = 3
-    for n in range(no_planes):
-        current_z = pl.GetMotorPosition("Z")        
-        imaging_filename = str(f'plane_{n}')
+    ## start my imaging here ##
+    no_timepts = 12
+    hrs_btwn = 3
+    for i in range(no_timepts):
+        imaging_filename = str(f'stack_{i}')
         print(imaging_filename)
         pl.SendScriptCommands("-SetFileName Tseries {}".format(imaging_filename))
 
-        print(f'starting t series for plane {n}, current z is {current_z}')
+        pl.SendScriptCommands("-SetLaserPower 'Axon 920' '205'")
+
         pl.SendScriptCommands("-TSeries") # current t-series set up
+
         pl.SendScriptCommands("-WaitForScan")
         print('scan done')
 
-        # changing z
-        new_z = current_z + 5
-        pl.SendScriptCommands(f"-SetMotorPosition 'Z' '{new_z}' 'True'")
-        pl.SendScriptCommands("-WaitForScan")
-        print(f'moved to {new_z} with stack')
+        pl.SendScriptCommands("-SetLaserPower 'Axon 920' '0'")
+
+        wait_secs = int(hrs_btwn * 60 * 60)
+       
+        sleep(wait_secs)
+
 
     pl.Disconnect()
     print("Disconnected from Prairie View")

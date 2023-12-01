@@ -5,8 +5,8 @@ from pathlib import Path
 import pandas as pd
 import qdarkstyle
 from PyQt5.Qt import QApplication
-from scopeslip import zmqComm
-from scopeslip.gui import alignment_gui
+# from scopeslip import zmqComm
+# from scopeslip.gui import alignment_gui
 from tifffile import imread
 
 from pandastim import utils
@@ -25,6 +25,8 @@ def pstimWrapper():
         Path(sys.executable)
         .parents[0]
         .joinpath(r"Lib\site-packages\pandastim\resources\params\default_params.json")
+        # .joinpath(r"Lib\site-packages\pandastim\resources\params\behavior_params.json")
+
     )
 
     # handles communication with the default parameters necessary to save data

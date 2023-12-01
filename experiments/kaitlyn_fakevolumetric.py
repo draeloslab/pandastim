@@ -13,10 +13,17 @@ from pandastim import utils
 from pandastim.buddies import stimulus_buddies
 from pandastim.stimuli import stimulus
 
+import win32com.client
+import time
+import threading
+import matplotlib.pyplot as plt
+import numpy as np
+from pynput import keyboard
+
 
 def pstimWrapper():
     # EDIT your save path here
-    mySavePath = r"E:\Pstim\pstim_output.txt"
+    mySavePath = r"E:\Pstim\pstim_output_kf.txt"
 
     # parameters necessary for ROI to pop up
     # here you can change the size of the ROI, the rotation of the window, location of window, etc
@@ -40,19 +47,12 @@ def pstimWrapper():
         Path(sys.executable)
         .parents[0]
         .joinpath(
-            r"Lib\site-packages\pandastim\resources\protocols\sixteenstim.hdf"
-            # r"Lib\site-packages\pandastim\resources\protocols\new_stims.hdf"
-            # r"Lib\site-packages\pandastim\resources\protocols\twentyonestim_long.hdf"
-            # r"Lib\site-packages\pandastim\resources\protocols\twentyonestim_new.hdf"
+            r"Lib\site-packages\pandastim\resources\protocols\twentyonestim_new.hdf"
         )
     )
     # can augment your pstim file here in any way you want
-    # ###CHANGE THIS LATER
-
-    inputStimuli = inputStimuli[:21]
-    inputStimuli['stationary_time'] = 2
-    inputStimuli['duration'] = 5
-    
+    ###CHANGE THIS LATER
+    inputStimuli = inputStimuli.loc[:200]
     # this will generate your stimulus sequence to be sent in the right datastructure
     # DO NOT CHANGE
     stimSequence = utils.generate_stimSequence(inputStimuli)
@@ -69,3 +69,7 @@ if __name__ == "__main__":
     processes = [mp.Process(target=p) for p in _processes]
     [p.start() for p in processes]
     [p.join() for p in processes]
+
+
+# connect to PrairieLink
+

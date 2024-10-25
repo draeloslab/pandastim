@@ -4,8 +4,8 @@ from pathlib import Path
 
 import qdarkstyle
 from PyQt5.Qt import QApplication
-from scopeslip import zmqComm
-from scopeslip.gui import alignment_gui
+# from scopeslip import zmqComm
+# from scopeslip.gui import alignment_gui
 
 from pandastim.buddies import stimulus_buddies
 from pandastim.stimuli import stimulus, stimulus_details
@@ -13,13 +13,16 @@ from pandastim.stimuli import stimulus, stimulus_details
 
 def pandastim_wrapper(alignment_comms):
     # handles communication from improv
-    pstim_comms = {"topic": "stim", "port": "5006", "ip": r"tcp://10.122.170.169:"}
+    pstim_comms = {"topic": "stim", "port": "5006", "ip": r"tcp://10.65.82.43:"}
+    
 
-    paramspath = (
-        Path(sys.executable)
-        .parents[0]
-        .joinpath(r"Lib\site-packages\pandastim\resources\params\improv_params.json")
-    )
+    # paramspath = (
+    #     Path(sys.executable)
+    #     .parents[0]
+    #     .joinpath(r"Lib\site-packages\pandastim\resources\params\improv_params.json")
+    # )
+
+    paramspath = './resources/params/improv_params.json'
 
     stimulus_buddy = stimulus_buddies.AligningStimBuddy(
         reporting="onMotion",
@@ -39,7 +42,7 @@ def alignment_wrapper(alignment_comms):
 
     # handles communication with labview
     myWalky = zmqComm.WalkyTalky(
-        outputPort="5005", inputIP="tcp://10.122.170.21:", inputPort="4701"
+        outputPort="5005", inputIP="tcp://10.65.82.43", inputPort="4701"
     )
 
     pa = alignment_gui.PlaneAligner(
@@ -54,7 +57,7 @@ if __name__ == "__main__":
 
     alignment_communication_ports = {"wt_output": "5015", "wt_input": "5016"}
 
-    _processes = [pandastim_wrapper, alignment_wrapper]
+    _processes = [pandastim_wrapper] # alignment_wrapper]
 
     processes = [
         mp.Process(target=p, args=(alignment_communication_ports,)) for p in _processes

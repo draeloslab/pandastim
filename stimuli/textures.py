@@ -192,6 +192,73 @@ class CircleGrayTex(TextureBase):
             f"bg:{self.bg_intensity} fg:{self.fg_intensity}"
         )
 
+class MultiCircleGrayTex(TextureBase):
+
+    def __init__(
+        self,
+        num_circles=50,
+        circle_radius=10,
+        bg_intensity=0,        
+        fg_intensity=255,
+        texture_name="multi_gray_circle",
+        *args,
+        **kwargs,
+    ):
+        # self.large_circle_center = large_circle_center
+        # self.large_circle_radius = large_circle_radius
+        self.num_circles = num_circles
+        self.circle_radius = circle_radius
+        self.bg_intensity = bg_intensity
+        self.fg_intensity = fg_intensity
+        super().__init__(texture_name=texture_name, *args, **kwargs)
+    
+    def create_texture(self) -> np.array:
+        if self.fg_intensity > 255 or self.bg_intensity < 0:
+            raise ValueError("Circle intensity must lie in [0, 255]")
+        
+        circle_texture = self.bg_intensity * np.ones(
+            (self.texture_size[0], self.texture_size[1]), dtype=np.uint8)
+        
+        # x = np.linspace(0, self.texture_size[0] - 1, self.texture_size[0])
+        # y = np.linspace(0, self.texture_size[1] - 1, self.texture_size[1])
+
+        x = np.linspace(
+            -self.texture_size[0] / 2, self.texture_size[0] / 2, self.texture_size[0]
+        )
+        y = np.linspace(
+            -self.texture_size[1] / 2, self.texture_size[1] / 2, self.texture_size[1]
+        )
+
+        X,Y = np.meshgrid(x,y)
+
+        # centers = []
+        # while len(centers) < self.num_circles:
+        #     angle = np.random.uniform(0, 2 * np.pi)
+        #     radius = np.random.uniform(0, self.large_circle_radius)
+        #     circle_center = (
+        #         self.large_circle_center[0] + radius * np.cos(angle),
+        #         self.large_circle_center[1] + radius * np.sin(angle)
+        #     )
+        #     centers.append((circle_center[0], circle_center[1]))
+        
+        for _ in range(self.num_circles):
+            circle_center = (
+                np.random.randint(-self.texture_size[0], self.texture_size[0]),
+                np.random.randint(-self.texture_size[1], self.texture_size[1]),
+            )
+
+            fg_intensity = np.random.choice([0,255])
+
+            circle_mask = (X - circle_center[0]) ** 2 + (Y - circle_center[1]) ** 2 <= self.circle_radius**2
+            circle_texture[circle_mask] = fg_intensity
+        
+        return np.uint8(circle_texture)
+
+    def __str__(self) -> str:
+        return (
+            f"{type(self).__name__} size:{self.texture_size} big circle center:{self.big_circle_center} big circle radius:{self.big_circle_radius} "
+            f"bg:{self.bg_intensity} fg:{self.fg_intensity}"
+        )
 
 class SinGrayTex(TextureBase):
     """

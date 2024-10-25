@@ -40,7 +40,7 @@ class StimulusSequencing(ShowBase):
 
     """
 
-    def __init__(self, stimuli=None, params_path="default", buddy=None):
+    def __init__(self, stimuli=None, params_path="./resources/params/improv_params.json", buddy=None):
         super().__init__()
 
         self.stimuli = stimuli

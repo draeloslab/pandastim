@@ -12,6 +12,10 @@ Component types (texture data types in panda3d):
 https://www.panda3d.org/reference/python/classpanda3d_1_1core_1_1Texture.html#a81f78fc173dedefe5a049c0aa3eed2c0
 """
 
+# TODO: need to create a flashing spots and looming texture - can probably just use the gray circle tex 
+# TODO: add length/width parameters to the gratings texture 
+# TODO: add ellipses texture (will probably be similar to gray circle tex, with adjustments for major/minor axes?)
+
 try:
     import cv2
 except Exception as e:
@@ -151,6 +155,7 @@ class CircleGrayTex(TextureBase):
 
     def __init__(
         self,
+        num_circles = 1,
         circle_center=(0, 0),
         circle_radius=100,
         bg_intensity=0,
@@ -159,6 +164,7 @@ class CircleGrayTex(TextureBase):
         *args,
         **kwargs,
     ):
+        self.num_circles = num_circles
         self.circle_center = circle_center
         self.circle_radius = circle_radius
         self.bg_intensity = bg_intensity
@@ -168,6 +174,8 @@ class CircleGrayTex(TextureBase):
     def create_texture(self) -> np.array:
         if self.fg_intensity > 255 or self.bg_intensity < 0:
             raise ValueError("Circle intensity must lie in [0, 255]")
+        if self.circle_center[0] > self.texture_size[0] / 2 or self.circle_center[1] > self.texture_size[1] / 2:
+            raise ValueError('Circle center is outside of texture field - may see clipping')
 
         x = np.linspace(
             -self.texture_size[0] / 2, self.texture_size[0] / 2, self.texture_size[0]
@@ -180,83 +188,127 @@ class CircleGrayTex(TextureBase):
         circle_texture = self.bg_intensity * np.ones(
             (self.texture_size[0], self.texture_size[1]), dtype=np.uint8
         )
-        circle_mask = (X - self.circle_center[0]) ** 2 + (
-            Y - self.circle_center[1]
-        ) ** 2 <= self.circle_radius**2
-        circle_texture[circle_mask] = self.fg_intensity
+
+        for _ in range(self.num_circles):
+            if self.num_circles > 1: 
+                self.circle_center = (
+                    np.random.randint(-self.texture_size[0] + self.circle_radius, self.texture_size[0] - self.circle_radius),
+                    np.random.randint(-self.texture_size[1] + self.circle_radius, self.texture_size[1] - self.circle_radius),
+                )
+            circle_mask = (X - self.circle_center[0]) ** 2 + (Y - self.circle_center[1]) ** 2 <= self.circle_radius**2
+            circle_texture[circle_mask] = self.fg_intensity
         return np.uint8(circle_texture)
 
     def __str__(self) -> str:
         return (
-            f"{type(self).__name__} size:{self.texture_size} center:{self.circle_center} radius:{self.circle_radius} "
+            f"{type(self).__name__} size:{self.texture_size} center:{self.circle_center} radius:{self.circle_radius} num of circles:{self.num_circles}"
             f"bg:{self.bg_intensity} fg:{self.fg_intensity}"
         )
-
-class MultiCircleGrayTex(TextureBase):
-
+    
+class EllipseGrayTex(TextureBase):
     def __init__(
         self,
-        num_circles=50,
-        circle_radius=10,
-        bg_intensity=0,        
+        frequency = 1,
+        center=(0, 0),
+        h_radius=50, #semi major axis
+        v_radius=100,#semi minor axis
+        bg_intensity=0,
         fg_intensity=255,
-        texture_name="multi_gray_circle",
+        texture_name="gray_circle",
         *args,
         **kwargs,
     ):
-        # self.large_circle_center = large_circle_center
-        # self.large_circle_radius = large_circle_radius
-        self.num_circles = num_circles
-        self.circle_radius = circle_radius
+        self.frequency = frequency
+        self.center = center
+        self.h_radius = h_radius
+        self.v_radius = v_radius
         self.bg_intensity = bg_intensity
         self.fg_intensity = fg_intensity
         super().__init__(texture_name=texture_name, *args, **kwargs)
-    
+
     def create_texture(self) -> np.array:
         if self.fg_intensity > 255 or self.bg_intensity < 0:
-            raise ValueError("Circle intensity must lie in [0, 255]")
+            raise ValueError("Ellipse intensity must lie in [0, 255]")
+        if self.center[0] > self.texture_size[0] / 2 or self.center[1] > self.texture_size[1] / 2:
+            raise ValueError('Ellipse center is outside of texture field - may see clipping')
         
-        circle_texture = self.bg_intensity * np.ones(
-            (self.texture_size[0], self.texture_size[1]), dtype=np.uint8)
-        
-        # x = np.linspace(0, self.texture_size[0] - 1, self.texture_size[0])
-        # y = np.linspace(0, self.texture_size[1] - 1, self.texture_size[1])
-
         x = np.linspace(
             -self.texture_size[0] / 2, self.texture_size[0] / 2, self.texture_size[0]
         )
         y = np.linspace(
             -self.texture_size[1] / 2, self.texture_size[1] / 2, self.texture_size[1]
         )
+        X, Y = np.meshgrid(x, y)
 
-        X,Y = np.meshgrid(x,y)
+        ellipse_texture = self.bg_intensity * np.ones(
+            (self.texture_size[0], self.texture_size[1]), dtype=np.uint8
+        )
 
-        # centers = []
-        # while len(centers) < self.num_circles:
-        #     angle = np.random.uniform(0, 2 * np.pi)
-        #     radius = np.random.uniform(0, self.large_circle_radius)
-        #     circle_center = (
-        #         self.large_circle_center[0] + radius * np.cos(angle),
-        #         self.large_circle_center[1] + radius * np.sin(angle)
-        #     )
-        #     centers.append((circle_center[0], circle_center[1]))
+        ellipse_mask = ((X - self.center[0]) ** 2 / self.h_radius ** 2 + 
+                        (Y - self.center[1]) ** 2 / self.v_radius ** 2) <=1
         
-        for _ in range(self.num_circles):
-            circle_center = (
-                np.random.randint(-self.texture_size[0], self.texture_size[0]),
-                np.random.randint(-self.texture_size[1], self.texture_size[1]),
-            )
+        ellipse_texture[ellipse_mask] = self.fg_intensity
 
-            fg_intensity = np.random.choice([0,255])
-
-            circle_mask = (X - circle_center[0]) ** 2 + (Y - circle_center[1]) ** 2 <= self.circle_radius**2
-            circle_texture[circle_mask] = fg_intensity
-        
-        return np.uint8(circle_texture)
+        return np.uint8(ellipse_texture)
 
     def __str__(self) -> str:
         return (
-            f"{type(self).__name__} size:{self.texture_size} big circle center:{self.big_circle_center} big circle radius:{self.big_circle_radius} "
+            f"{type(self).__name__} size:{self.texture_size} center:{self.circle_center} radius:{self.circle_radius} num of circles:{self.num_circles}"
+            f"bg:{self.bg_intensity} fg:{self.fg_intensity}"
+        )
+
+class RectGrayTex(TextureBase):
+    def __init__(
+        self,
+        frequency = 1,
+        center=(0, 0),
+        length=50, #semi major axis
+        width=100,#semi minor axis
+        bg_intensity=0,
+        fg_intensity=255,
+        texture_name="gray_rect",
+        *args,
+        **kwargs,
+    ):
+        self.frequency = frequency
+        self.center = center
+        self.length = length
+        self.width = width
+        self.bg_intensity = bg_intensity
+        self.fg_intensity = fg_intensity
+        super().__init__(texture_name=texture_name, *args, **kwargs)
+
+    def create_texture(self) -> np.array:
+        if self.fg_intensity > 255 or self.bg_intensity < 0:
+            raise ValueError("Ellipse intensity must lie in [0, 255]")
+        if self.center[0] > self.texture_size[0] / 2 or self.center[1] > self.texture_size[1] / 2:
+            raise ValueError('Ellipse center is outside of texture field - may see clipping')
+        
+        x = np.linspace(
+            -self.texture_size[0] / 2, self.texture_size[0] / 2, self.texture_size[0]
+        )
+        y = np.linspace(
+            -self.texture_size[1] / 2, self.texture_size[1] / 2, self.texture_size[1]
+        )
+        X, Y = np.meshgrid(x, y)
+
+        rect_texture = self.bg_intensity * np.ones(
+            (self.texture_size[0], self.texture_size[1]), dtype=np.uint8
+        )
+
+        rect_mask = (X >= self.center[0] - self.width / 2) & (
+                        X <= self.center[0] + self.width / 2) & (
+                        Y >= self.center[1] - self.length / 2) & (
+                        Y <= self.center[1] + self.length / 2)
+        
+        
+        rect_texture[rect_mask] = self.fg_intensity
+
+        return np.uint8(rect_texture)
+
+    def __str__(self) -> str:
+        return (
+            f"{type(self).__name__} size:{self.texture_size} center:{self.circle_center} radius:{self.circle_radius} num of circles:{self.num_circles}"
             f"bg:{self.bg_intensity} fg:{self.fg_intensity}"
         )
 

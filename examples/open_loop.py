@@ -24,7 +24,7 @@ sin_gray_tex = textures.SinGrayTex(
 # create a wholefield stimulus with that texture
 sin_gray_stimulus = stimulus_details.MonocularStimulusDetails(
     texture=sin_gray_tex,
-    angle=33,
+    angle=180,
     velocity=0.05,
     stationary_time=2,
     duration=24,
@@ -46,8 +46,9 @@ sin_red_stimulus = stimulus_details.MonocularStimulusDetails(
 
 circle_tex= textures.CircleGrayTex(
     texture_size = 1024, 
-    circle_center= (500,100),
-    circle_radius= 5,
+    num_circles = 1000,
+    circle_center= (450,100),
+    circle_radius= 6,
     texture_name='gray_circle',
     bg_intensity= 200,
     fg_intensity=50,
@@ -55,42 +56,53 @@ circle_tex= textures.CircleGrayTex(
 circle_stimulus = stimulus_details.MonocularStimulusDetails(
     texture=circle_tex,
     angle=90,
-    velocity=0.05,
+    velocity=0.2,
     stationary_time=0,
     duration=20,
     hold_after=float(20),
     stim_name="gray_circ",
 )
 
-multi_circle_tex = textures.MultiCircleGrayTex(
+ellipse_tex= textures.EllipseGrayTex(
     texture_size = 1024, 
-    num_circles=1500,
-    circle_radius=2,
-    bg_intensity=200,        
+    frequency = 1,
+    center= (450,100),
+    h_radius= 15,
+    v_radius= 20,
+    texture_name='gray_ellipse',
+    bg_intensity= 200,
     fg_intensity=50,
-    texture_name="multi_gray_circle",
 )
-
-# multi_circle_tex = textures.MultiCircleGrayTex(
-#     texture_size = 1024, 
-#     large_circle_center = (500,100),
-#     large_circle_radius = 10,
-#     num_circles=50,
-#     circle_radius=10,
-#     bg_intensity=200,        
-#     fg_intensity=50,
-#     texture_name="multi_gray_circle",
-# )
-
-multi_circle_stim = stimulus_details.MonocularStimulusDetails(
-    texture=multi_circle_tex,
-    angle=60,
-    velocity=0.06,
+ellipse_stimulus = stimulus_details.MonocularStimulusDetails(
+    texture=ellipse_tex,
+    angle=90,
+    velocity=0.1,
     stationary_time=0,
     duration=20,
     hold_after=float(20),
-    stim_name="moving_spots",
+    stim_name="gray_circ",
 )
+
+rect_tex= textures.RectGrayTex(
+    texture_size = 1024, 
+    frequency = 1,
+    center= (450,100),
+    length= 100,
+    width= 20,
+    texture_name='gray_rectangle',
+    bg_intensity= 200,
+    fg_intensity=50,
+)
+rect_stimulus = stimulus_details.MonocularStimulusDetails(
+    texture=rect_tex,
+    angle=90,
+    velocity=0.1,
+    stationary_time=0,
+    duration=20,
+    hold_after=float(20),
+    stim_name="gray_circ",
+)
+
 
 # We can create binocular by combining monocular
 combined_binoc_stim = stimulus_details.monocular2binocular(
@@ -99,6 +111,17 @@ combined_binoc_stim = stimulus_details.monocular2binocular(
 
 # or from scratch
 grate_gray_tex = textures.GratingGrayTex(texture_size=1024, frequency=32)
+grate_gray_stimulus = stimulus_details.MonocularStimulusDetails(
+    texture=grate_gray_tex,
+    angle=90,
+    velocity=0.05,
+    stationary_time=2,
+    duration=24,
+    hold_after=12.0,
+    stim_name="moving_gray",
+)
+
+
 fresh_binoc_stim = stimulus_details.BinocularStimulusDetails(
     stim_name="wholefield_right",
     angle=(90, 90),
@@ -109,8 +132,9 @@ fresh_binoc_stim = stimulus_details.BinocularStimulusDetails(
     texture=(sin_gray_tex, grate_gray_tex),
 )
 
-all_stimuli = [
-    multi_circle_stim]
+all_stimuli = [rect_stimulus]
+    #[circle_stimulus]
+    # multi_circle_stim]
 #     sin_gray_stimulus,
 #     sin_red_stimulus,
 #     combined_binoc_stim,

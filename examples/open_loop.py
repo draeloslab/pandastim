@@ -44,11 +44,21 @@ sin_red_stimulus = stimulus_details.MonocularStimulusDetails(
     stim_name="red_sin",
 )
 
+# circle_tex= textures.CircleGrayTex(
+#     texture_size = 3000, 
+#     num_circles = 1,
+#     circle_center= (1100,1800),
+#     circle_radius= 10,
+#     texture_name='gray_circle',
+#     bg_intensity= 200,
+#     fg_intensity=50,
+# )
+
 circle_tex= textures.CircleGrayTex(
-    texture_size = 1024, 
-    num_circles = 1000,
-    circle_center= (450,100),
-    circle_radius= 6,
+    texture_size = 5000, 
+    frequency = 1,
+    circle_center= (2700,3000),
+    circle_radius= 20,
     texture_name='gray_circle',
     bg_intensity= 200,
     fg_intensity=50,
@@ -56,7 +66,7 @@ circle_tex= textures.CircleGrayTex(
 circle_stimulus = stimulus_details.MonocularStimulusDetails(
     texture=circle_tex,
     angle=90,
-    velocity=0.2,
+    velocity=0.08,
     stationary_time=0,
     duration=20,
     hold_after=float(20),
@@ -64,11 +74,11 @@ circle_stimulus = stimulus_details.MonocularStimulusDetails(
 )
 
 ellipse_tex= textures.EllipseGrayTex(
-    texture_size = 1024, 
+    texture_size = 5000, 
     frequency = 1,
-    center= (450,100),
-    h_radius= 15,
-    v_radius= 20,
+    center= (2700,3000),
+    h_radius= 25,
+    v_radius= 50,
     texture_name='gray_ellipse',
     bg_intensity= 200,
     fg_intensity=50,
@@ -76,7 +86,7 @@ ellipse_tex= textures.EllipseGrayTex(
 ellipse_stimulus = stimulus_details.MonocularStimulusDetails(
     texture=ellipse_tex,
     angle=90,
-    velocity=0.1,
+    velocity=0.08,
     stationary_time=0,
     duration=20,
     hold_after=float(20),
@@ -84,11 +94,11 @@ ellipse_stimulus = stimulus_details.MonocularStimulusDetails(
 )
 
 rect_tex= textures.RectGrayTex(
-    texture_size = 1024, 
-    frequency = 1,
-    center= (450,100),
-    length= 100,
-    width= 20,
+    texture_size = 5000, 
+    frequency = 1000,
+    center= (2700,3000),
+    length= 1024,
+    width= 100,
     texture_name='gray_rectangle',
     bg_intensity= 200,
     fg_intensity=50,
@@ -133,13 +143,7 @@ fresh_binoc_stim = stimulus_details.BinocularStimulusDetails(
 )
 
 all_stimuli = [rect_stimulus]
-    #[circle_stimulus]
-    # multi_circle_stim]
-#     sin_gray_stimulus,
-#     sin_red_stimulus,
-#     combined_binoc_stim,
-#     fresh_binoc_stim,
-# ]
+#[circle_stimulus, ellipse_stimulus]
 
 
 pstim = stimulus.OpenLoopStimulus(all_stimuli)

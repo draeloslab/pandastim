@@ -57,8 +57,8 @@ sin_red_stimulus = stimulus_details.MonocularStimulusDetails(
 circle_tex= textures.CircleGrayTex(
     texture_size = 5000, 
     frequency = 1,
-    circle_center= (2700,3000),
-    circle_radius= 20,
+    circle_center= (2750,3000),
+    circle_radius= 10,
     texture_name='gray_circle',
     bg_intensity= 200,
     fg_intensity=50,
@@ -78,7 +78,7 @@ ellipse_tex= textures.EllipseGrayTex(
     frequency = 1,
     center= (2700,3000),
     h_radius= 25,
-    v_radius= 50,
+    v_radius= 150,
     texture_name='gray_ellipse',
     bg_intensity= 200,
     fg_intensity=50,
@@ -93,25 +93,25 @@ ellipse_stimulus = stimulus_details.MonocularStimulusDetails(
     stim_name="gray_circ",
 )
 
-rect_tex= textures.RectGrayTex(
-    texture_size = 5000, 
-    frequency = 1000,
-    center= (2700,3000),
-    length= 1024,
-    width= 100,
-    texture_name='gray_rectangle',
-    bg_intensity= 200,
-    fg_intensity=50,
-)
-rect_stimulus = stimulus_details.MonocularStimulusDetails(
-    texture=rect_tex,
-    angle=90,
-    velocity=0.1,
-    stationary_time=0,
-    duration=20,
-    hold_after=float(20),
-    stim_name="gray_circ",
-)
+# rect_tex= textures.RectGrayTex(
+#     texture_size = 5000, 
+#     frequency = 1000,
+#     center= (2700,3000),
+#     length= 1024,
+#     width= 100,
+#     texture_name='gray_rectangle',
+#     bg_intensity= 200,
+#     fg_intensity=50,
+# )
+# rect_stimulus = stimulus_details.MonocularStimulusDetails(
+#     texture=rect_tex,
+#     angle=90,
+#     velocity=0.1,
+#     stationary_time=0,
+#     duration=20,
+#     hold_after=float(20),
+#     stim_name="gray_circ",
+# )
 
 
 # We can create binocular by combining monocular
@@ -142,7 +142,24 @@ fresh_binoc_stim = stimulus_details.BinocularStimulusDetails(
     texture=(sin_gray_tex, grate_gray_tex),
 )
 
-all_stimuli = [rect_stimulus]
+callibration_text = textures.CallibrationDots(
+    texture_size = 5000, 
+    circle_center= (2750,3000),
+    circle_radius= 20,
+    bg_intensity=200,
+    texture_name='callibration_dots',
+)
+callibration_stim = stimulus_details.MonocularStimulusDetails(
+    texture=callibration_text,
+    angle=90,
+    velocity=0.0,
+    stationary_time=0,
+    duration=20,
+    hold_after=float(20),
+    stim_name="callibration_dots",
+)
+
+all_stimuli = [callibration_stim]
 #[circle_stimulus, ellipse_stimulus]
 
 

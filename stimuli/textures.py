@@ -553,3 +553,65 @@ class RadialSinCube(TextureBase):
 
     def __str__(self) -> str:
         return f"{type(self).__name__} size:{self.texture_size} period:{self.period} phase: {self.phase}"
+
+class CallibrationDots(TextureBase): 
+    def __init__(
+        self,
+        circle_center=(0, 0),
+        circle_radius=100,
+        bg_intensity = 0,
+        texture_name="callibration_dots",
+        *args,
+        **kwargs,
+    ):
+        self.circle_center = circle_center
+        self.circle_radius = circle_radius
+        self.bg_intensity = bg_intensity
+        super().__init__(texture_name=texture_name, *args, **kwargs)
+
+    def create_texture(self) -> np.array:
+        x = np.linspace(0, self.texture_size[0], self.texture_size[0])
+        y = np.linspace(0, self.texture_size[1], self.texture_size[1])
+        X, Y = np.meshgrid(x, y)
+
+        circle_texture = self.bg_intensity * np.ones(
+            (self.texture_size[0], self.texture_size[1], 3), dtype=np.uint8
+        )
+
+        grid_centers = []
+        spacing = 120
+        grid_size = int(np.sqrt(10))  # Arrange circles in a roughly square grid
+        offset = (grid_size - 1) * spacing / 2  # Center the grid around the given center
+        for i in range(grid_size):
+            for j in range(grid_size):
+                if len(grid_centers) < 10:  # Stop once we have 10 circles
+                    center_x = self.circle_center[0] - offset + i * spacing
+                    center_y = self.circle_center[1] - offset + j * spacing
+                    grid_centers.append((center_x, center_y))
+
+        # Define specific colors for the circles
+        colors = [
+            (255, 0, 0),   # Red
+            (0, 255, 0),   # Green
+            (0, 0, 255),   # Blue
+            (255, 255, 0), # Yellow
+            (0, 255, 255), # Cyan
+            (255, 0, 255), # Magenta
+            (128, 128, 128), # Gray
+            (255, 128, 0), # Orange
+            (128, 0, 255), # Purple
+            (0, 128, 255)  # Light Blue
+        ]
+
+        # Draw each circle
+        for idx, (cx, cy) in enumerate(grid_centers):
+            circle_mask = (X - cx) ** 2 + (Y - cy) ** 2 <= self.circle_radius ** 2
+            for channel in range(3):  # Apply the specific color to each RGB channel
+                circle_texture[circle_mask, channel] = colors[idx][channel]
+        return np.uint8(circle_texture)
+
+    def __str__(self) -> str:
+        return (
+            f"{type(self).__name__} size:{self.texture_size} center:{self.circle_center} radius:{self.circle_radius} num of circles:{self.num_circles}"
+            f"bg:{self.bg_intensity} fg:{self.fg_intensity}"
+        )

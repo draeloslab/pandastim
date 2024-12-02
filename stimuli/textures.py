@@ -155,7 +155,7 @@ class CircleGrayTex(TextureBase):
 
     def __init__(
         self,
-        num_circles = 1,
+        frequency = 1,
         circle_center=(0, 0),
         circle_radius=100,
         bg_intensity=0,
@@ -164,7 +164,7 @@ class CircleGrayTex(TextureBase):
         *args,
         **kwargs,
     ):
-        self.num_circles = num_circles
+        self.frequency = frequency
         self.circle_center = circle_center
         self.circle_radius = circle_radius
         self.bg_intensity = bg_intensity
@@ -174,14 +174,20 @@ class CircleGrayTex(TextureBase):
     def create_texture(self) -> np.array:
         if self.fg_intensity > 255 or self.bg_intensity < 0:
             raise ValueError("Circle intensity must lie in [0, 255]")
-        if self.circle_center[0] > self.texture_size[0] / 2 or self.circle_center[1] > self.texture_size[1] / 2:
-            raise ValueError('Circle center is outside of texture field - may see clipping')
+        # if self.circle_center[0] > self.texture_size[0] / 2 or self.circle_center[1] > self.texture_size[1] / 2:
+        #     raise ValueError('Circle center is outside of texture field - may see clipping')
 
+        # x = np.linspace(
+        #     -self.texture_size[0] / 2, self.texture_size[0] / 2, self.texture_size[0]
+        # )
+        # y = np.linspace(
+        #     -self.texture_size[1] / 2, self.texture_size[1] / 2, self.texture_size[1]
+        # )
         x = np.linspace(
-            -self.texture_size[0] / 2, self.texture_size[0] / 2, self.texture_size[0]
+            0, self.texture_size[0], self.texture_size[0]
         )
         y = np.linspace(
-            -self.texture_size[1] / 2, self.texture_size[1] / 2, self.texture_size[1]
+            0, self.texture_size[1], self.texture_size[1]
         )
         X, Y = np.meshgrid(x, y)
 
@@ -189,8 +195,8 @@ class CircleGrayTex(TextureBase):
             (self.texture_size[0], self.texture_size[1]), dtype=np.uint8
         )
 
-        for _ in range(self.num_circles):
-            if self.num_circles > 1: 
+        for _ in range(self.frequency):
+            if self.frequency > 1: 
                 self.circle_center = (
                     np.random.randint(-self.texture_size[0] + self.circle_radius, self.texture_size[0] - self.circle_radius),
                     np.random.randint(-self.texture_size[1] + self.circle_radius, self.texture_size[1] - self.circle_radius),
@@ -229,14 +235,20 @@ class EllipseGrayTex(TextureBase):
     def create_texture(self) -> np.array:
         if self.fg_intensity > 255 or self.bg_intensity < 0:
             raise ValueError("Ellipse intensity must lie in [0, 255]")
-        if self.center[0] > self.texture_size[0] / 2 or self.center[1] > self.texture_size[1] / 2:
-            raise ValueError('Ellipse center is outside of texture field - may see clipping')
+        # if self.center[0] > self.texture_size[0] / 2 or self.center[1] > self.texture_size[1] / 2:
+        #     raise ValueError('Ellipse center is outside of texture field - may see clipping')
         
+        # x = np.linspace(
+        #     -self.texture_size[0] / 2, self.texture_size[0] / 2, self.texture_size[0]
+        # )
+        # y = np.linspace(
+        #     -self.texture_size[1] / 2, self.texture_size[1] / 2, self.texture_size[1]
+        # )
         x = np.linspace(
-            -self.texture_size[0] / 2, self.texture_size[0] / 2, self.texture_size[0]
+            0, self.texture_size[0], self.texture_size[0]
         )
         y = np.linspace(
-            -self.texture_size[1] / 2, self.texture_size[1] / 2, self.texture_size[1]
+            0, self.texture_size[1], self.texture_size[1]
         )
         X, Y = np.meshgrid(x, y)
 
@@ -281,14 +293,14 @@ class RectGrayTex(TextureBase):
     def create_texture(self) -> np.array:
         if self.fg_intensity > 255 or self.bg_intensity < 0:
             raise ValueError("Ellipse intensity must lie in [0, 255]")
-        if self.center[0] > self.texture_size[0] / 2 or self.center[1] > self.texture_size[1] / 2:
-            raise ValueError('Ellipse center is outside of texture field - may see clipping')
+        # if self.center[0] > self.texture_size[0] / 2 or self.center[1] > self.texture_size[1] / 2:
+        #     raise ValueError('Ellipse center is outside of texture field - may see clipping')
         
         x = np.linspace(
-            -self.texture_size[0] / 2, self.texture_size[0] / 2, self.texture_size[0]
+            0, self.texture_size[0], self.texture_size[0]
         )
         y = np.linspace(
-            -self.texture_size[1] / 2, self.texture_size[1] / 2, self.texture_size[1]
+            0, self.texture_size[1], self.texture_size[1]
         )
         X, Y = np.meshgrid(x, y)
 
@@ -296,11 +308,22 @@ class RectGrayTex(TextureBase):
             (self.texture_size[0], self.texture_size[1]), dtype=np.uint8
         )
 
-        rect_mask = (X >= self.center[0] - self.width / 2) & (
-                        X <= self.center[0] + self.width / 2) & (
+        if self.frequency > 1:
+            spacing = self.texture_size[1] / self.frequency
+
+            for i in range(self.frequency):
+                center = i * spacing + spacing/2
+
+                rect_mask = (X >= center - self.width / 2) & (
+                        X <= center + self.width / 2) & (
                         Y >= self.center[1] - self.length / 2) & (
                         Y <= self.center[1] + self.length / 2)
-        
+        else: 
+
+            rect_mask = (X >= self.center[0] - self.width / 2) & (
+                            X <= self.center[0] + self.width / 2) & (
+                            Y >= self.center[1] - self.length / 2) & (
+                            Y <= self.center[1] + self.length / 2)
         
         rect_texture[rect_mask] = self.fg_intensity
 

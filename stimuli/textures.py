@@ -158,6 +158,7 @@ class CircleGrayTex(TextureBase):
         frequency = 1,
         circle_center=(0, 0),
         circle_radius=100,
+        spacing = 20,
         bg_intensity=0,
         fg_intensity=255,
         texture_name="gray_circle",
@@ -167,6 +168,7 @@ class CircleGrayTex(TextureBase):
         self.frequency = frequency
         self.circle_center = circle_center
         self.circle_radius = circle_radius
+        self.spacing = spacing
         self.bg_intensity = bg_intensity
         self.fg_intensity = fg_intensity
         super().__init__(texture_name=texture_name, *args, **kwargs)
@@ -174,15 +176,7 @@ class CircleGrayTex(TextureBase):
     def create_texture(self) -> np.array:
         if self.fg_intensity > 255 or self.bg_intensity < 0:
             raise ValueError("Circle intensity must lie in [0, 255]")
-        # if self.circle_center[0] > self.texture_size[0] / 2 or self.circle_center[1] > self.texture_size[1] / 2:
-        #     raise ValueError('Circle center is outside of texture field - may see clipping')
-
-        # x = np.linspace(
-        #     -self.texture_size[0] / 2, self.texture_size[0] / 2, self.texture_size[0]
-        # )
-        # y = np.linspace(
-        #     -self.texture_size[1] / 2, self.texture_size[1] / 2, self.texture_size[1]
-        # )
+        
         x = np.linspace(
             0, self.texture_size[0], self.texture_size[0]
         )
@@ -195,12 +189,25 @@ class CircleGrayTex(TextureBase):
             (self.texture_size[0], self.texture_size[1]), dtype=np.uint8
         )
 
+        # mean_x, mean_y = self.circle_center
+        # std_x, std_y = 1000, 1000
+
         for _ in range(self.frequency):
             if self.frequency > 1: 
-                self.circle_center = (
-                    np.random.randint(-self.texture_size[0] + self.circle_radius, self.texture_size[0] - self.circle_radius),
-                    np.random.randint(-self.texture_size[1] + self.circle_radius, self.texture_size[1] - self.circle_radius),
-                )
+                for i in range(self.frequency):
+                    center_x = self.circle_center[0] + i * self.spacing
+                    center_y = self.circle_center[1] + i * self.spacing
+                # self.circle_center = (
+                #     int(np.clip(np.random.normal(mean_x, std_x), self.circle_radius, self.texture_size[0] - self.circle_radius)),
+                #     int(np.clip(np.random.normal(mean_y, std_y), self.circle_radius, self.texture_size[1] - self.circle_radius))
+                # )
+                # self.circle_center = (
+                #     np.random.randint(-self.texture_size[0] + self.circle_radius, self.texture_size[0] - self.circle_radius),
+                #     np.random.randint(-self.texture_size[1] + self.circle_radius, self.texture_size[1] - self.circle_radius),
+                # )
+                circle_mask = (X - center_x) ** 2 + (Y - center_y ** 2) <= self.circle_radius**2
+                circle_texture[circle_mask] = self.fg_intensity
+            # else:
             circle_mask = (X - self.circle_center[0]) ** 2 + (Y - self.circle_center[1]) ** 2 <= self.circle_radius**2
             circle_texture[circle_mask] = self.fg_intensity
         return np.uint8(circle_texture)
@@ -235,15 +242,7 @@ class EllipseGrayTex(TextureBase):
     def create_texture(self) -> np.array:
         if self.fg_intensity > 255 or self.bg_intensity < 0:
             raise ValueError("Ellipse intensity must lie in [0, 255]")
-        # if self.center[0] > self.texture_size[0] / 2 or self.center[1] > self.texture_size[1] / 2:
-        #     raise ValueError('Ellipse center is outside of texture field - may see clipping')
         
-        # x = np.linspace(
-        #     -self.texture_size[0] / 2, self.texture_size[0] / 2, self.texture_size[0]
-        # )
-        # y = np.linspace(
-        #     -self.texture_size[1] / 2, self.texture_size[1] / 2, self.texture_size[1]
-        # )
         x = np.linspace(
             0, self.texture_size[0], self.texture_size[0]
         )
@@ -270,12 +269,16 @@ class EllipseGrayTex(TextureBase):
         )
 
 class RectGrayTex(TextureBase):
+    '''
+    Rectangle texture with changeable length x width, frequency, and spacing between rectangles (default is None)
+    '''
     def __init__(
         self,
         frequency = 1,
         center=(0, 0),
         length=50, #semi major axis
-        width=100,#semi minor axis
+        width=100, #semi minor axis
+        spacing=None,
         bg_intensity=0,
         fg_intensity=255,
         texture_name="gray_rect",
@@ -286,6 +289,7 @@ class RectGrayTex(TextureBase):
         self.center = center
         self.length = length
         self.width = width
+        self.spacing = spacing
         self.bg_intensity = bg_intensity
         self.fg_intensity = fg_intensity
         super().__init__(texture_name=texture_name, *args, **kwargs)
@@ -293,8 +297,6 @@ class RectGrayTex(TextureBase):
     def create_texture(self) -> np.array:
         if self.fg_intensity > 255 or self.bg_intensity < 0:
             raise ValueError("Ellipse intensity must lie in [0, 255]")
-        # if self.center[0] > self.texture_size[0] / 2 or self.center[1] > self.texture_size[1] / 2:
-        #     raise ValueError('Ellipse center is outside of texture field - may see clipping')
         
         x = np.linspace(
             0, self.texture_size[0], self.texture_size[0]
@@ -309,23 +311,35 @@ class RectGrayTex(TextureBase):
         )
 
         if self.frequency > 1:
-            spacing = self.texture_size[1] / self.frequency
+            if self.width > self.length: 
+                for i in range(self.frequency):
+                    center_y_right = self.center[1] + i * self.spacing
+                    center_y_left = self.center[1] - i * self.spacing
+                    rect_mask_right = (X >= self.center[0] - self.width / 2) & (X <= self.center[0] + self.width / 2) & (
+                                       Y >= center_y_right - self.length / 2) &  (Y <= center_y_right + self.length / 2) 
+                    rect_mask_left = (X >= self.center[0] - self.width / 2) & (X <= self.center[0] + self.width / 2) & (
+                                       Y >= center_y_left - self.length / 2) &  (Y <= center_y_left + self.length / 2) 
+                
+                    rect_texture[rect_mask_right] = self.fg_intensity
+                    rect_texture[rect_mask_left] = self.fg_intensity
 
-            for i in range(self.frequency):
-                center = i * spacing + spacing/2
+            elif self.length > self.width: 
+                for i in range(self.frequency):
+                    center_x_right = self.center[0] + i * self.spacing
+                    center_x_left = self.center[0] - i * self.spacing
+                    rect_mask_right = (X >= center_x_right - self.width / 2) & (X <= center_x_right  + self.width / 2) & (
+                                       Y >= self.center[1] - self.length / 2) &  (Y <= self.center[1] + self.length / 2) 
+                    rect_mask_left = (X >= center_x_left - self.width / 2) & (X <= center_x_left + self.width / 2) & (
+                                       Y >= self.center[1] - self.length / 2) &  (Y <= self.center[1] + self.length / 2) 
+                
+                    rect_texture[rect_mask_right] = self.fg_intensity
+                    rect_texture[rect_mask_left] = self.fg_intensity
 
-                rect_mask = (X >= center - self.width / 2) & (
-                        X <= center + self.width / 2) & (
-                        Y >= self.center[1] - self.length / 2) & (
-                        Y <= self.center[1] + self.length / 2)
         else: 
-
-            rect_mask = (X >= self.center[0] - self.width / 2) & (
-                            X <= self.center[0] + self.width / 2) & (
-                            Y >= self.center[1] - self.length / 2) & (
-                            Y <= self.center[1] + self.length / 2)
+            rect_mask = (X >= self.center[0] - self.width / 2) & (X <= self.center[0] + self.width / 2) & (
+                         Y >= self.center[1] - self.length / 2) & (Y <= self.center[1] + self.length / 2)
         
-        rect_texture[rect_mask] = self.fg_intensity
+            rect_texture[rect_mask] = self.fg_intensity
 
         return np.uint8(rect_texture)
 
@@ -579,28 +593,39 @@ class CallibrationDots(TextureBase):
         )
 
         grid_centers = []
-        spacing = 120
-        grid_size = int(np.sqrt(10))  # Arrange circles in a roughly square grid
-        offset = (grid_size - 1) * spacing / 2  # Center the grid around the given center
-        for i in range(grid_size):
-            for j in range(grid_size):
-                if len(grid_centers) < 10:  # Stop once we have 10 circles
-                    center_x = self.circle_center[0] - offset + i * spacing
-                    center_y = self.circle_center[1] - offset + j * spacing
-                    grid_centers.append((center_x, center_y))
+        spacing = 70
+        # grid_size = int(np.sqrt(11))  # Arrange circles in a roughly square grid
+        # offset = (grid_size - 1) * spacing / 2  # Center the grid around the given center
+        rows, cols = 5, 9
+        total_circles = rows * cols
+        center_row, center_col = rows // 2, cols // 2
+    
+        for i in range(rows):
+            for j in range(cols):
+                center_x = self.circle_center[0] - (j - center_col) * spacing
+                center_y = self.circle_center[1] - (i - center_row) * spacing
+                grid_centers.append((center_x, center_y))
 
-        # Define specific colors for the circles
+        # # Define specific colors for the circles
+        # colors = [
+        #     (255, 0, 0),   # Red
+        #     (0, 255, 0),   # Green
+        #     (0, 0, 255),   # Blue
+        #     (255, 255, 0), # Yellow
+        #     (0, 255, 255), # Cyan
+        #     (255, 0, 255), # Magenta
+        #     (128, 128, 128), # Gray
+        #     (255, 128, 0), # Orange
+        #     (128, 0, 255), # Purple
+        #     (0, 128, 255)  # Light Blue
+        # ]
         colors = [
-            (255, 0, 0),   # Red
-            (0, 255, 0),   # Green
-            (0, 0, 255),   # Blue
-            (255, 255, 0), # Yellow
-            (0, 255, 255), # Cyan
-            (255, 0, 255), # Magenta
-            (128, 128, 128), # Gray
-            (255, 128, 0), # Orange
-            (128, 0, 255), # Purple
-            (0, 128, 255)  # Light Blue
+            (
+                int((idx / total_circles) * 255), 
+                int(((total_circles - idx) / total_circles) * 255),
+                int((idx % total_circles) * (255 /total_circles))
+            )
+            for idx in range(total_circles)
         ]
 
         # Draw each circle
@@ -608,6 +633,19 @@ class CallibrationDots(TextureBase):
             circle_mask = (X - cx) ** 2 + (Y - cy) ** 2 <= self.circle_radius ** 2
             for channel in range(3):  # Apply the specific color to each RGB channel
                 circle_texture[circle_mask, channel] = colors[idx][channel]
+
+            # text_position = (int(cx), int(cy))
+            # text = f"({int(cx)}, {int(cy)})"
+            # cv2.putText(
+            #     circle_texture, 
+            #     text, 
+            #     text_position, 
+            #     fontFace=cv2.FONT_HERSHEY_SIMPLEX, 
+            #     fontScale=0.3,
+            #     color=(255, 255, 255),
+            #     thickness=1, 
+            #     lineType=cv2.LINE_AA
+            # )
         return np.uint8(circle_texture)
 
     def __str__(self) -> str:

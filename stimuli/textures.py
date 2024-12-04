@@ -151,6 +151,9 @@ class CircleGrayTex(TextureBase):
     Filled circle: grayscale on grayscale with circle_radius, centered at circle_center
     with face color fg_intensity on background bg_intensity. Center position is in pixels
     from center of image.
+
+    If frequency (number of circles) > 1, it will set up a grid and sample from a Gaussian distribution, 
+    and evenly space out the points based on a self.spacing parameter. 
     """
 
     def __init__(
@@ -189,27 +192,30 @@ class CircleGrayTex(TextureBase):
             (self.texture_size[0], self.texture_size[1]), dtype=np.uint8
         )
 
-        # mean_x, mean_y = self.circle_center
-        # std_x, std_y = 1000, 1000
+        # setting up grid for extra dots
+        grid_spacing = self.spacing  
+        grid_x = np.arange(0, self.texture_size[0], grid_spacing)
+        grid_y = np.arange(0, self.texture_size[1], grid_spacing)
+        grid_X, grid_Y = np.meshgrid(grid_x, grid_y)
+        grid_points = np.column_stack((grid_X.ravel(), grid_Y.ravel()))
 
-        for _ in range(self.frequency):
-            if self.frequency > 1: 
-                for i in range(self.frequency):
-                    center_x = self.circle_center[0] + i * self.spacing
-                    center_y = self.circle_center[1] + i * self.spacing
-                # self.circle_center = (
-                #     int(np.clip(np.random.normal(mean_x, std_x), self.circle_radius, self.texture_size[0] - self.circle_radius)),
-                #     int(np.clip(np.random.normal(mean_y, std_y), self.circle_radius, self.texture_size[1] - self.circle_radius))
-                # )
-                # self.circle_center = (
-                #     np.random.randint(-self.texture_size[0] + self.circle_radius, self.texture_size[0] - self.circle_radius),
-                #     np.random.randint(-self.texture_size[1] + self.circle_radius, self.texture_size[1] - self.circle_radius),
-                # )
-                circle_mask = (X - center_x) ** 2 + (Y - center_y ** 2) <= self.circle_radius**2
-                circle_texture[circle_mask] = self.fg_intensity
-            # else:
-            circle_mask = (X - self.circle_center[0]) ** 2 + (Y - self.circle_center[1]) ** 2 <= self.circle_radius**2
+        # generating probabilities based on a Gaussian distribution centered at the original circle center
+        distance_from_center = np.sqrt(
+            (grid_points[:, 0] - self.circle_center[0])**2 +
+            (grid_points[:, 1] - self.circle_center[1])**2
+        )
+        probabilities = np.exp(-distance_from_center**2 / (2 * 50**2))
+        probabilities /= probabilities.sum()
+
+        # sample points from grid space
+        num_samples = min(self.frequency, len(grid_points))
+        selected_indices = np.random.choice(len(grid_points), size=num_samples, p=probabilities, replace=False)
+        selected_centers = grid_points[selected_indices]
+
+        for center_x, center_y in selected_centers:
+            circle_mask = (X - center_x)**2 + (Y - center_y)**2 <= self.circle_radius**2
             circle_texture[circle_mask] = self.fg_intensity
+
         return np.uint8(circle_texture)
 
     def __str__(self) -> str:
@@ -223,8 +229,8 @@ class EllipseGrayTex(TextureBase):
         self,
         frequency = 1,
         center=(0, 0),
-        h_radius=50, #semi major axis
-        v_radius=100,#semi minor axis
+        width=50, #semi major axis
+        length=100,#semi minor axis
         bg_intensity=0,
         fg_intensity=255,
         texture_name="gray_circle",
@@ -233,8 +239,8 @@ class EllipseGrayTex(TextureBase):
     ):
         self.frequency = frequency
         self.center = center
-        self.h_radius = h_radius
-        self.v_radius = v_radius
+        self.h_radius = width / 2
+        self.v_radius = length / 2
         self.bg_intensity = bg_intensity
         self.fg_intensity = fg_intensity
         super().__init__(texture_name=texture_name, *args, **kwargs)
@@ -243,30 +249,59 @@ class EllipseGrayTex(TextureBase):
         if self.fg_intensity > 255 or self.bg_intensity < 0:
             raise ValueError("Ellipse intensity must lie in [0, 255]")
         
-        x = np.linspace(
-            0, self.texture_size[0], self.texture_size[0]
-        )
-        y = np.linspace(
-            0, self.texture_size[1], self.texture_size[1]
-        )
+        x = np.linspace(0, self.texture_size[0], self.texture_size[0])
+        y = np.linspace(0, self.texture_size[1], self.texture_size[1])
         X, Y = np.meshgrid(x, y)
 
         ellipse_texture = self.bg_intensity * np.ones(
-            (self.texture_size[0], self.texture_size[1]), dtype=np.uint8
-        )
-
-        ellipse_mask = ((X - self.center[0]) ** 2 / self.h_radius ** 2 + 
-                        (Y - self.center[1]) ** 2 / self.v_radius ** 2) <=1
+            (self.texture_size[0], self.texture_size[1]), dtype=np.uint8)
         
-        ellipse_texture[ellipse_mask] = self.fg_intensity
+        if self.frequency > 1:
+        # setting up grid for extra dots
+            if self.h_radius > self.v_radius:
+                grid_spacing = self.v_radius * 2 + 100 
+            else: 
+                grid_spacing = self.h_radius * 2 + 100
+
+            grid_x = np.arange(0, self.texture_size[0], grid_spacing)
+            grid_y = np.arange(0, self.texture_size[1], grid_spacing)
+            grid_X, grid_Y = np.meshgrid(grid_x, grid_y)
+            grid_points = np.column_stack((grid_X.ravel(), grid_Y.ravel()))
+
+            # generating probabilities based on a Gaussian distribution centered at the original circle center
+            distance_from_center = np.sqrt(
+                (grid_points[:, 0] - self.center[0])**2 +
+                (grid_points[:, 1] - self.center[1])**2
+            )
+            probabilities = np.exp(-distance_from_center**2 / (2 * 60**2))
+            probabilities /= probabilities.sum()
+
+            # sample points from grid space
+            num_samples = min(self.frequency, len(grid_points))
+            selected_indices = np.random.choice(len(grid_points), size=num_samples, p=probabilities, replace=False)
+            selected_centers = grid_points[selected_indices]
+
+            for center_x, center_y in selected_centers:
+                if (
+                    self.h_radius <= center_x < self.texture_size[0] - self.h_radius
+                    and self.v_radius <= center_y < self.texture_size[1] - self.v_radius
+                ):
+                    ellipse_mask = ((X - center_x) ** 2 / self.h_radius ** 2 + 
+                                    (Y - center_y) ** 2 / self.v_radius ** 2) <=1
+                    
+                    ellipse_texture[ellipse_mask] = self.fg_intensity
+        else:
+            ellipse_mask = ((X - self.center[0]) ** 2 / self.h_radius ** 2 + 
+                            (Y - self.center[1]) ** 2 / self.v_radius ** 2) <=1
+                    
+            ellipse_texture[ellipse_mask] = self.fg_intensity
 
         return np.uint8(ellipse_texture)
 
     def __str__(self) -> str:
         return (
             f"{type(self).__name__} size:{self.texture_size} center:{self.circle_center} radius:{self.circle_radius} num of circles:{self.num_circles}"
-            f"bg:{self.bg_intensity} fg:{self.fg_intensity}"
-        )
+            f"bg:{self.bg_intensity} fg:{self.fg_intensity}")
 
 class RectGrayTex(TextureBase):
     '''
@@ -276,9 +311,8 @@ class RectGrayTex(TextureBase):
         self,
         frequency = 1,
         center=(0, 0),
-        length=50, #semi major axis
-        width=100, #semi minor axis
-        spacing=None,
+        length=50, 
+        width=100, 
         bg_intensity=0,
         fg_intensity=255,
         texture_name="gray_rect",
@@ -289,7 +323,6 @@ class RectGrayTex(TextureBase):
         self.center = center
         self.length = length
         self.width = width
-        self.spacing = spacing
         self.bg_intensity = bg_intensity
         self.fg_intensity = fg_intensity
         super().__init__(texture_name=texture_name, *args, **kwargs)
@@ -310,35 +343,57 @@ class RectGrayTex(TextureBase):
             (self.texture_size[0], self.texture_size[1]), dtype=np.uint8
         )
 
-        if self.frequency > 1:
-            if self.width > self.length: 
-                for i in range(self.frequency):
-                    center_y_right = self.center[1] + i * self.spacing
-                    center_y_left = self.center[1] - i * self.spacing
-                    rect_mask_right = (X >= self.center[0] - self.width / 2) & (X <= self.center[0] + self.width / 2) & (
-                                       Y >= center_y_right - self.length / 2) &  (Y <= center_y_right + self.length / 2) 
-                    rect_mask_left = (X >= self.center[0] - self.width / 2) & (X <= self.center[0] + self.width / 2) & (
-                                       Y >= center_y_left - self.length / 2) &  (Y <= center_y_left + self.length / 2) 
-                
-                    rect_texture[rect_mask_right] = self.fg_intensity
-                    rect_texture[rect_mask_left] = self.fg_intensity
+        # setting up grid for extra dots
+        # if self.width > self.length:
+        #     grid_spacing = self.length * 2 + 100 
+        # else: 
+        #     grid_spacing = self.width * 2 + 100
 
-            elif self.length > self.width: 
-                for i in range(self.frequency):
-                    center_x_right = self.center[0] + i * self.spacing
-                    center_x_left = self.center[0] - i * self.spacing
-                    rect_mask_right = (X >= center_x_right - self.width / 2) & (X <= center_x_right  + self.width / 2) & (
-                                       Y >= self.center[1] - self.length / 2) &  (Y <= self.center[1] + self.length / 2) 
-                    rect_mask_left = (X >= center_x_left - self.width / 2) & (X <= center_x_left + self.width / 2) & (
-                                       Y >= self.center[1] - self.length / 2) &  (Y <= self.center[1] + self.length / 2) 
-                
-                    rect_texture[rect_mask_right] = self.fg_intensity
-                    rect_texture[rect_mask_left] = self.fg_intensity
+        grid_x = np.arange(0, self.texture_size[0], 100 + self.width)
+        grid_y = np.arange(0, self.texture_size[1], 100 + self.length)
+        grid_X, grid_Y = np.meshgrid(grid_x, grid_y)
+        grid_points = np.column_stack((grid_X.ravel(), grid_Y.ravel()))
 
-        else: 
-            rect_mask = (X >= self.center[0] - self.width / 2) & (X <= self.center[0] + self.width / 2) & (
-                         Y >= self.center[1] - self.length / 2) & (Y <= self.center[1] + self.length / 2)
+        # valid_points = (grid_points[:,0] >= self.width / 2) & (grid_points[:,0] < self.texture_size[0] - self.width / 2) & \
+        #                (grid_points[:,1] >= self.length / 2) & (grid_points[:,1] < self.texture_size[1] - self.length / 2)
+        # valid_grid_points = grid_points[valid_points]
+        # valid_distances = np.sqrt(
+        #     (valid_grid_points[:,0] - self.center[0]) ** 2 + (valid_grid_points[:,1] - self.center[1]) **2 
+        # )
+        # # distance_from_center = np.sqrt((grid_points[:,0] - self.center[0]) ** 2 + (grid_points[:, 1] - self.center[1]) **2)
+        # probabilities = np.exp(-valid_distances**2 / (2 * 60**2))
+        # probabilities /= probabilities.sum()
+
+        num_samples = min(self.frequency, len(grid_points))
+        # selected_indices = np.random.choice(len(grid_points), size=num_samples, replace=False)
+        selected_centers = grid_points[:num_samples]
+
+        for center in selected_centers:
+            center_x, center_y = center
+
+            # if (
+            #     self.width  <= center_x < self.texture_size[0] - self.width and
+            #     self.length <= center_y < self.texture_size[1] - self.length 
+            # ):
+            rect_mask = (X >= center_x - self.width / 2) & (X <= center_x  + self.width / 2) & (
+                        Y >= center_y - self.length / 2) &  (Y <= center_y + self.length / 2)
+            rect_texture[rect_mask] = self.fg_intensity
+        # valid_points = []
+        # for px, py in grid_points:
+        #     if (
+        #         self.width / 2 <= px < self.texture_size[0] - self.width / 2 and
+        #         self.length /2 <= py < self.texture_size[1] - self.length / 2
+        #     ):
+        #         valid_points.append((px, py))
         
+        # if self.frequency > 1:
+        #     sampled_points = [self.center] + valid_points[:self.frequency - 1]
+        # else:
+        #     sampled_points = [self.center]
+        
+        if self.frequency == 1:
+            rect_mask = (X >= self.center[0] - self.width / 2) & (X <= self.center[0]  + self.width / 2) & (
+                         Y >= self.center[1] - self.length / 2) &  (Y <= self.center[1] + self.length / 2)
             rect_texture[rect_mask] = self.fg_intensity
 
         return np.uint8(rect_texture)
@@ -593,10 +648,10 @@ class CallibrationDots(TextureBase):
         )
 
         grid_centers = []
-        spacing = 70
+        spacing = 110
         # grid_size = int(np.sqrt(11))  # Arrange circles in a roughly square grid
         # offset = (grid_size - 1) * spacing / 2  # Center the grid around the given center
-        rows, cols = 5, 9
+        rows, cols = 7, 13
         total_circles = rows * cols
         center_row, center_col = rows // 2, cols // 2
     

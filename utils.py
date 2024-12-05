@@ -116,6 +116,8 @@ def create_tex(input_tex_dict: dict):
         "blank_tex": textures.BlankTex,
         "circs": textures.CalibrationTriangles,
         "radial_sin_centering": textures.RadialSinCube,
+        "gray_ellipse": textures.EllipseGrayTex,
+        "gray_rectangle": textures.RectGrayTex,
     }
     texFxn = texture_map_dict[input_tex_dict["tex_texture_name"]]
     # 4: to take off the 'tex_' we added earlier
@@ -146,6 +148,8 @@ def createTexture(input_tex_dict: dict):
         "blank_tex": textures.BlankTex,
         "circs": textures.CalibrationTriangles,
         "radial_sin_centering": textures.RadialSinCube,
+        "gray_ellipse": textures.EllipseGrayTex,
+        "gray_rectangle": textures.RectGrayTex,
     }
     texFxn = texture_map_dict[input_tex_dict["texture_name"]]
 

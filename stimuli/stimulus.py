@@ -78,7 +78,7 @@ class StimulusSequencing(ShowBase):
         cardmaker.setFrameFullscreenQuad()
 
         # create tex stage
-        self.texture_stage = ("texture_stage")
+        self.texture_stage = TextureStage("texture_stage")
 
         # create card
         self.card = self.aspect2d.attachNewNode(cardmaker.generate())
@@ -129,7 +129,7 @@ class StimulusSequencing(ShowBase):
         tex_2 = self.current_stimulus.texture[1].texture
 
         ## CREATE TEXTURE STAGES ##
-        self.left_texture_stage = ("left_texture_stage")
+        self.left_texture_stage = TextureStage("left_texture_stage")
         self.left_mask = Texture("left_mask_texture")
         self.left_mask.setup2dTexture(
             tex_1_size[0], tex_1_size[1], Texture.T_unsigned_byte, Texture.F_luminance
@@ -608,9 +608,9 @@ class OpenLoopStimulus(StimulusSequencing):
         # create tex stage
         self.texture_stage = TextureStage("texture_stage")
 
-        # create card  
+        # create card
         self.card = self.aspect2d.attachNewNode(cardmaker.generate())
-        self.card.setScale(2) # this is the scaling factor for the texture itself
+        self.card.setScale(2)
         self.card.setColor((1, 1, 1, 1))
 
         self.card.setTexture(self.texture_stage, self.current_stimulus.texture.texture)

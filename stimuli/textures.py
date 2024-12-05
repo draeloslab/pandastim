@@ -233,14 +233,14 @@ class EllipseGrayTex(TextureBase):
         length=100,#semi minor axis
         bg_intensity=0,
         fg_intensity=255,
-        texture_name="gray_circle",
+        texture_name="gray_ellipse",
         *args,
         **kwargs,
     ):
         self.frequency = frequency
         self.center = center
-        self.h_radius = width / 2
-        self.v_radius = length / 2
+        self.width = width / 2
+        self.length = length / 2
         self.bg_intensity = bg_intensity
         self.fg_intensity = fg_intensity
         super().__init__(texture_name=texture_name, *args, **kwargs)
@@ -258,10 +258,10 @@ class EllipseGrayTex(TextureBase):
         
         if self.frequency > 1:
         # setting up grid for extra dots
-            if self.h_radius > self.v_radius:
-                grid_spacing = self.v_radius * 2 + 100 
+            if self.width > self.length:
+                grid_spacing = self.width * 2 + 100 
             else: 
-                grid_spacing = self.h_radius * 2 + 100
+                grid_spacing = self.length * 2 + 100
 
             grid_x = np.arange(0, self.texture_size[0], grid_spacing)
             grid_y = np.arange(0, self.texture_size[1], grid_spacing)
@@ -283,16 +283,16 @@ class EllipseGrayTex(TextureBase):
 
             for center_x, center_y in selected_centers:
                 if (
-                    self.h_radius <= center_x < self.texture_size[0] - self.h_radius
-                    and self.v_radius <= center_y < self.texture_size[1] - self.v_radius
+                    self.width <= center_x < self.texture_size[0] - self.width
+                    and self.length <= center_y < self.texture_size[1] - self.length
                 ):
-                    ellipse_mask = ((X - center_x) ** 2 / self.h_radius ** 2 + 
-                                    (Y - center_y) ** 2 / self.v_radius ** 2) <=1
+                    ellipse_mask = ((X - center_x) ** 2 / self.width ** 2 + 
+                                    (Y - center_y) ** 2 / self.length ** 2) <=1
                     
                     ellipse_texture[ellipse_mask] = self.fg_intensity
         else:
-            ellipse_mask = ((X - self.center[0]) ** 2 / self.h_radius ** 2 + 
-                            (Y - self.center[1]) ** 2 / self.v_radius ** 2) <=1
+            ellipse_mask = ((X - self.center[0]) ** 2 / self.width ** 2 + 
+                            (Y - self.center[1]) ** 2 / self.length ** 2) <=1
                     
             ellipse_texture[ellipse_mask] = self.fg_intensity
 
@@ -315,7 +315,7 @@ class RectGrayTex(TextureBase):
         width=100, 
         bg_intensity=0,
         fg_intensity=255,
-        texture_name="gray_rect",
+        texture_name="gray_rectangle",
         *args,
         **kwargs,
     ):

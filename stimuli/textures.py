@@ -228,7 +228,8 @@ class EllipseGrayTex(TextureBase):
     def __init__(
         self,
         frequency = 1,
-        center=(0, 0),
+        center_x=0,
+        center_y=0,
         width=50, #semi major axis
         length=100,#semi minor axis
         bg_intensity=0,
@@ -238,7 +239,7 @@ class EllipseGrayTex(TextureBase):
         **kwargs,
     ):
         self.frequency = frequency
-        self.center = center
+        self.center = (center_x, center_y)
         self.width = width / 2
         self.length = length / 2
         self.bg_intensity = bg_intensity
@@ -310,7 +311,8 @@ class RectGrayTex(TextureBase):
     def __init__(
         self,
         frequency = 1,
-        center=(0, 0),
+        center_x=0,
+        center_y=0,
         length=50, 
         width=100, 
         bg_intensity=0,
@@ -320,7 +322,7 @@ class RectGrayTex(TextureBase):
         **kwargs,
     ):
         self.frequency = frequency
-        self.center = center
+        self.center = (center_x, center_y)
         self.length = length
         self.width = width
         self.bg_intensity = bg_intensity

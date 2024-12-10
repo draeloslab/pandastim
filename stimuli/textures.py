@@ -239,7 +239,8 @@ class EllipseGrayTex(TextureBase):
         **kwargs,
     ):
         self.frequency = frequency
-        self.center = (center_x, center_y)
+        self.center_x = center_x
+        self.center_y = center_y
         self.width = width / 2
         self.length = length / 2
         self.bg_intensity = bg_intensity
@@ -271,8 +272,8 @@ class EllipseGrayTex(TextureBase):
 
             # generating probabilities based on a Gaussian distribution centered at the original circle center
             distance_from_center = np.sqrt(
-                (grid_points[:, 0] - self.center[0])**2 +
-                (grid_points[:, 1] - self.center[1])**2
+                (grid_points[:, 0] - self.center_x)**2 +
+                (grid_points[:, 1] - self.center_y)**2
             )
             probabilities = np.exp(-distance_from_center**2 / (2 * 60**2))
             probabilities /= probabilities.sum()
@@ -292,8 +293,8 @@ class EllipseGrayTex(TextureBase):
                     
                     ellipse_texture[ellipse_mask] = self.fg_intensity
         else:
-            ellipse_mask = ((X - self.center[0]) ** 2 / self.width ** 2 + 
-                            (Y - self.center[1]) ** 2 / self.length ** 2) <=1
+            ellipse_mask = ((X - self.center_x) ** 2 / self.width ** 2 + 
+                            (Y - self.center_y) ** 2 / self.length ** 2) <=1
                     
             ellipse_texture[ellipse_mask] = self.fg_intensity
 
@@ -322,7 +323,8 @@ class RectGrayTex(TextureBase):
         **kwargs,
     ):
         self.frequency = frequency
-        self.center = (center_x, center_y)
+        self.center_x = center_x
+        self.center_y = center_y
         self.length = length
         self.width = width
         self.bg_intensity = bg_intensity
@@ -360,9 +362,9 @@ class RectGrayTex(TextureBase):
         #                (grid_points[:,1] >= self.length / 2) & (grid_points[:,1] < self.texture_size[1] - self.length / 2)
         # valid_grid_points = grid_points[valid_points]
         # valid_distances = np.sqrt(
-        #     (valid_grid_points[:,0] - self.center[0]) ** 2 + (valid_grid_points[:,1] - self.center[1]) **2 
+        #     (valid_grid_points[:,0] - self.center_x) ** 2 + (valid_grid_points[:,1] - self.center_y) **2 
         # )
-        # # distance_from_center = np.sqrt((grid_points[:,0] - self.center[0]) ** 2 + (grid_points[:, 1] - self.center[1]) **2)
+        # # distance_from_center = np.sqrt((grid_points[:,0] - self.center_x) ** 2 + (grid_points[:, 1] - self.center_y) **2)
         # probabilities = np.exp(-valid_distances**2 / (2 * 60**2))
         # probabilities /= probabilities.sum()
 
@@ -394,8 +396,8 @@ class RectGrayTex(TextureBase):
         #     sampled_points = [self.center]
         
         if self.frequency == 1:
-            rect_mask = (X >= self.center[0] - self.width / 2) & (X <= self.center[0]  + self.width / 2) & (
-                         Y >= self.center[1] - self.length / 2) &  (Y <= self.center[1] + self.length / 2)
+            rect_mask = (X >= self.center_x - self.width / 2) & (X <= self.center_x  + self.width / 2) & (
+                         Y >= self.center_y - self.length / 2) &  (Y <= self.center_y + self.length / 2)
             rect_texture[rect_mask] = self.fg_intensity
 
         return np.uint8(rect_texture)

@@ -241,8 +241,8 @@ class EllipseGrayTex(TextureBase):
         self.frequency = frequency
         self.center_x = center_x
         self.center_y = center_y
-        self.width = width / 2
-        self.length = length / 2
+        self.width = width
+        self.length = length
         self.bg_intensity = bg_intensity
         self.fg_intensity = fg_intensity
         super().__init__(texture_name=texture_name, *args, **kwargs)
@@ -261,9 +261,9 @@ class EllipseGrayTex(TextureBase):
         if self.frequency > 1:
         # setting up grid for extra dots
             if self.width > self.length:
-                grid_spacing = self.width * 2 + 100 
+                grid_spacing = self.width + 100 
             else: 
-                grid_spacing = self.length * 2 + 100
+                grid_spacing = self.length + 100
 
             grid_x = np.arange(0, self.texture_size[0], grid_spacing)
             grid_y = np.arange(0, self.texture_size[1], grid_spacing)
@@ -285,16 +285,16 @@ class EllipseGrayTex(TextureBase):
 
             for center_x, center_y in selected_centers:
                 if (
-                    self.width <= center_x < self.texture_size[0] - self.width
-                    and self.length <= center_y < self.texture_size[1] - self.length
+                    (self.width/2) <= center_x < self.texture_size[0] - (self.width/2)
+                    and (self.length/2) <= center_y < self.texture_size[1] - (self.length/2)
                 ):
-                    ellipse_mask = ((X - center_x) ** 2 / self.width ** 2 + 
-                                    (Y - center_y) ** 2 / self.length ** 2) <=1
+                    ellipse_mask = ((X - center_x) ** 2 / (self.width/2) ** 2 + 
+                                    (Y - center_y) ** 2 / (self.length/2) ** 2) <=1
                     
                     ellipse_texture[ellipse_mask] = self.fg_intensity
         else:
-            ellipse_mask = ((X - self.center_x) ** 2 / self.width ** 2 + 
-                            (Y - self.center_y) ** 2 / self.length ** 2) <=1
+            ellipse_mask = ((X - self.center_x) ** 2 / (self.width/2) ** 2 + 
+                            (Y - self.center_y) ** 2 / (self.length/2) ** 2) <=1
                     
             ellipse_texture[ellipse_mask] = self.fg_intensity
 

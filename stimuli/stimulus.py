@@ -613,6 +613,10 @@ class OpenLoopStimulus(StimulusSequencing):
         self.card.setScale(2)
         self.card.setColor((1, 1, 1, 1))
 
+        # # NOTE: trying to ensure that the texture does not repeat itself and cause clipping? 
+        # self.current_stimulus.texture.texture.setWrapU(Texture.WMClamp)
+        # self.current_stimulus.texture.texture.setWrapV(Texture.WMClamp)
+
         self.card.setTexture(self.texture_stage, self.current_stimulus.texture.texture)
 
         # set tex transforms

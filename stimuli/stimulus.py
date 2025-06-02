@@ -712,6 +712,35 @@ class ExternalStimulus(SequencingWithPause):
 
         return buddytask.cont
 
+    def set_monocular(self):
+        cardmaker = CardMaker("stimcard")
+        cardmaker.setFrameFullscreenQuad()
+
+        # create tex stage
+        self.texture_stage = TextureStage("texture_stage")
+
+        # create card
+        self.card = self.aspect2d.attachNewNode(cardmaker.generate())
+        self.card.setScale(2)
+        self.card.setColor((1, 1, 1, 1))
+
+        # # NOTE: trying to ensure that the texture does not repeat itself and cause clipping? 
+        # self.current_stimulus.texture.texture.setWrapU(Texture.WMClamp)
+        # self.current_stimulus.texture.texture.setWrapV(Texture.WMClamp)
+
+        self.card.setTexture(self.texture_stage, self.current_stimulus.texture.texture)
+
+        # set tex transforms
+        self.card.setTexRotate(
+            self.texture_stage,
+            self.current_stimulus.angle + self.default_params["rotation_offset"],
+            )
+        self.center_x = 0.05
+        self.center_y = 0.1
+        self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0) # x, y
+        self.taskMgr.add(self.move_monocular, "move_monocular")
+
+
 ### TEX MOVING AND BINOCULAR MOVING FOR EXAMPLES ON HOW TO MOVE ###
 class TexMoving(ShowBase):
     """

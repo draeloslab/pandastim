@@ -13,7 +13,7 @@ from pandastim.stimuli import stimulus, stimulus_details
 
 def pandastim_wrapper(alignment_comms):
     # handles communication from improv
-    pstim_comms = {"topic": "stim", "port": "5006", "ip": r"tcp://10.65.2.207:"}
+    pstim_comms = {"topic": "stim", "port": "6006", "ip": r"tcp://10.65.2.207:"}
     
 
     # paramspath = (

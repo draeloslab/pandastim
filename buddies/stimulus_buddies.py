@@ -124,7 +124,10 @@ class StimulusBuddy(DirectObject.DirectObject):
                     # self.output(msg)
             case "onMotion":
                 msg = [self._motion, self._stimChange]
-                if self._lastmessage[0] != msg[0] and not self._stimChange:
+                # if self._lastmessage[0] != msg[0] and not self._stimChange:
+                #     if self._stimulus is not None:
+                #         self.output(f"motionOn: {self._stimulus.return_dict()}")
+                if self._motion and self._lastmessage[0] != self._motion and not self._stimChange: # FIXME: if you're showing a stim pause then moving, need to change this line!
                     if self._stimulus is not None:
                         self.output(f"motionOn: {self._stimulus.return_dict()}")
                     else:

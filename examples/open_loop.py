@@ -85,44 +85,46 @@ from pandastim.stimuli import stimulus, stimulus_details, textures
 # #     fg_intensity=50,
 # # )
 
-# ellipse_tex= textures.EllipseGrayTex(
-#     texture_size = 1600, 
-#     frequency = 100,
-#     center= (205,625),
-#     width= 400,
-#     length= 200,
-#     texture_name='gray_ellipse',
-#     bg_intensity= 200,
-#     fg_intensity=50,
-# )
-# ellipse_stimulus = stimulus_details.MonocularStimulusDetails(
-#     texture=ellipse_tex,
-#     angle=240,
-#     velocity=0.12,
-#     stationary_time=0,
-#     duration=5,
-#     hold_after=float(5),
-#     stim_name="gray_ellipse",
-# )
+ellipse_tex= textures.EllipseGrayTex(
+    texture_size = 1600, 
+    frequency = 1,
+    center_x= 800,
+    center_y=1000,
+    width= 100,
+    length= 100,
+    texture_name='rgb_ellipse',
+    bg_intensity= 200,
+    fg_intensity=50,
+)
+ellipse_stimulus = stimulus_details.MonocularStimulusDetails(
+    texture=ellipse_tex,
+    angle=270,
+    velocity=0.2,
+    stationary_time=0,
+    duration=8,
+    hold_after=float(8),
+    stim_name="rgb_ellipse",
+)
 
 # rect_tex= textures.RectGrayTex(
 #     texture_size = 1600, 
 #     frequency = 200,
-#     center= (865,955),
-#     length= 85,
-#     width= 2000,
-#     texture_name='gray_rectangle',
+#     center_x= 800,
+#     center_y=1200,
+#     width= 400,
+#     length= 200,
+#     texture_name='rgb_rect',
 #     bg_intensity= 200,
 #     fg_intensity=50,
 # )
 # rect_stimulus = stimulus_details.MonocularStimulusDetails(
 #     texture=rect_tex,
 #     angle=90,
-#     velocity=0.08,
+#     velocity=0.0,
 #     stationary_time=0,
 #     duration=5,
 #     hold_after=float(5),
-#     stim_name="gray_rectangle",
+#     stim_name="rgb_rect",
 # )
 
 
@@ -155,28 +157,15 @@ from pandastim.stimuli import stimulus, stimulus_details, textures
 #     texture=(sin_gray_tex, grate_gray_tex),
 # )
 
-callibration_text = textures.CallibrationDots(
-    texture_size = 1600,
-    circle_center= (865,955),
-    circle_radius= 25,
-    bg_intensity=200,
-    texture_name='callibration_dots',
-)
+# callibration_text = textures.CallibrationDots(
+#     texture_size = 1600,
+#     circle_center= (865,955),
+#     circle_radius= 25,
+#     bg_intensity=200,
+#     texture_name='callibration_dots',
+# )
 
-all_stim = []
-for i in list(range(0, 361, 30)):
-    all_stim.append(stimulus_details.MonocularStimulusDetails(
-        texture=callibration_text,
-        angle=i,
-        velocity=0.0,
-        stationary_time=0,
-        duration=5,                                    
-        hold_after=float(5),
-        stim_name="callibration_dots",
-    ))
-           
-all_stimuli = all_stim
-# all_stimuli = [callibration_stim]
+all_stimuli = [ellipse_stimulus]
 #[circle_stimulus, ellipse_stimulus]
 
 

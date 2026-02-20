@@ -17,6 +17,7 @@ class StimulusDetails:
     """Contains details about a given stimulus"""
 
     stim_name: str
+    note: str | None = None
 
 
 @dataclass(frozen=True)

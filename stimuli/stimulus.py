@@ -72,6 +72,11 @@ class StimulusSequencing(ShowBase):
                 print(
                     f"{self.current_stimulus.__class__} -- Stimulus type not understood"
                 )
+    def _compute_center_offset(self, angle_deg):
+        theta = np.radians(angle_deg)
+        tx = 0.5 * (1.0 - np.cos(theta) + np.sin(theta))
+        ty = 0.5 * (1.0 - np.cos(theta) - np.sin(theta))
+        return tx, ty
 
     def set_monocular(self):
         cardmaker = CardMaker("stimcard")
@@ -87,13 +92,14 @@ class StimulusSequencing(ShowBase):
 
         self.card.setTexture(self.texture_stage, self.current_stimulus.texture.texture)
 
-        # set tex transforms
-        self.card.setTexRotate(
-            self.texture_stage,
-            self.current_stimulus.angle + self.default_params["rotation_offset"],
-        )
-        self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0)
-        print('bi')
+        self.current_stimulus.texture.texture.setWrapU(Texture.WMClamp)
+        self.current_stimulus.texture.texture.setWrapV(Texture.WMClamp)
+
+        self._mono_angle = (-self.current_stimulus.angle + self.default_params['rotation_offset'])
+        self._center_tx, self._center_ty = self._compute_center_offset(self._mono_angle)
+        self.card.setTexPos(self.texture_stage, self._center_tx + self.center_x, self._center_ty + self.center_y, 0)
+        self.card.setTexRotate(self.texture_stage, self._mono_angle)
+
         self.taskMgr.add(self.move_monocular, "move_monocular")
 
     def move_monocular(self, move_monocular_task):
@@ -113,9 +119,10 @@ class StimulusSequencing(ShowBase):
             self.new_position = (
                 -move_monocular_task.time
             ) * self.current_stimulus.velocity
-            self.card.setTexPos(
-                self.texture_stage, self.new_position + self.center_x, self.center_y, 0
-            )  # u, v, w
+            self.card.setTexPos(self.texture_stage, self.new_position + self._center_tx + self.center_x, self._center_ty + self.center_y, 0)
+            # self.card.setTexPos(
+            #     self.texture_stage, self.new_position + self.center_x, self.center_y, 0
+            # )  # u, v, w
         return move_monocular_task.cont
 
     def set_binocular(self):
@@ -601,33 +608,56 @@ class OpenLoopStimulus(StimulusSequencing):
 
         self.set_stimulus()
 
-    def set_monocular(self):
-        cardmaker = CardMaker("stimcard")
-        cardmaker.setFrameFullscreenQuad()
+    # def set_monocular(self):
+    #     cardmaker = CardMaker("stimcard")
+    #     cardmaker.setFrameFullscreenQuad()
 
-        # create tex stage
-        self.texture_stage = TextureStage("texture_stage")
+    #     # create tex stage
+    #     self.texture_stage = TextureStage("texture_stage")
 
-        # create card
-        self.card = self.aspect2d.attachNewNode(cardmaker.generate())
-        self.card.setScale(2)
-        self.card.setColor((1, 1, 1, 1))
+    #     # create card
+    #     self.card = self.aspect2d.attachNewNode(cardmaker.generate())
+    #     self.card.setScale(1)
+    #     self.card.setColor((1, 1, 1, 1))
 
-        # # NOTE: trying to ensure that the texture does not repeat itself and cause clipping? 
-        # self.current_stimulus.texture.texture.setWrapU(Texture.WMClamp)
-        # self.current_stimulus.texture.texture.setWrapV(Texture.WMClamp)
+    #     # # NOTE: trying to ensure that the texture does not repeat itself and cause clipping? 
+    #     self.current_stimulus.texture.texture.setWrapU(Texture.WMClamp)
+    #     self.current_stimulus.texture.texture.setWrapV(Texture.WMClamp)
 
-        self.card.setTexture(self.texture_stage, self.current_stimulus.texture.texture)
+    #     self.card.setTexture(self.texture_stage, self.current_stimulus.texture.texture)
 
-        # set tex transforms
-        self.card.setTexRotate(
-            self.texture_stage,
-            self.current_stimulus.angle + self.default_params["rotation_offset"],
-            )
-        self.center_x = 0.05
-        self.center_y = 0.1
-        self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0) # x, y
-        self.taskMgr.add(self.move_monocular, "move_monocular")
+    #     #testing this
+    #     # self.card.setTexScale(self.texture_stage, 1 / np.sqrt(2), 1 /np.sqrt(2))
+
+    #     # import math 
+    #     # angle = -self.current_stimulus.angle + self.default_params['rotation_offset']
+    #     # center_shift = TransformState.make_pos2d((-0.5, -0.5))
+    #     # rotate = TransformState.make_rotate2d(angle)
+    #     # uncenter = TransformState.make_pos2d((0.5, 0.5))
+
+    #     # transform = uncenter.compose(rotate.compose(center_shift))
+    #     # self.card.setTexTransform(self.texture_stage, transform)
+
+    #     # cos_a = math.cos(angle_rad)
+    #     # sin_a = math.sin(angle_rad)
+
+    #     # rotated_u = 0.5 * cos_a - 0.5 * sin_a
+    #     # rotated_v = 0.5 * sin_a + 0.5 * cos_a
+
+    #     # center_u = 0.5 - rotated_u
+    #     # center_v = 0.5 - rotated_v
+
+
+    #     # set tex transforms
+    #     self.card.setTexRotate(
+    #         self.texture_stage,
+    #         - self.current_stimulus.angle + self.default_params["rotation_offset"],
+    #         )
+    #     self.center_x = 0.0
+    #     self.center_y = 0.0
+    #     # self.card.setTexPos(self.texture_stage, center_u, center_v, 0)
+    #     self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0) # x, y
+    #     self.taskMgr.add(self.move_monocular, "move_monocular")
 
 
 
@@ -712,33 +742,33 @@ class ExternalStimulus(SequencingWithPause):
 
         return buddytask.cont
 
-    def set_monocular(self):
-        cardmaker = CardMaker("stimcard")
-        cardmaker.setFrameFullscreenQuad()
+    # def set_monocular(self):
+    #     cardmaker = CardMaker("stimcard")
+    #     cardmaker.setFrameFullscreenQuad()
 
-        # create tex stage
-        self.texture_stage = TextureStage("texture_stage")
+    #     # create tex stage
+    #     self.texture_stage = TextureStage("texture_stage")
 
-        # create card
-        self.card = self.aspect2d.attachNewNode(cardmaker.generate())
-        self.card.setScale(2)
-        self.card.setColor((1, 1, 1, 1))
+    #     # create card
+    #     self.card = self.aspect2d.attachNewNode(cardmaker.generate())
+    #     self.card.setScale(2)
+    #     self.card.setColor((1, 1, 1, 1))
 
-        # # NOTE: trying to ensure that the texture does not repeat itself and cause clipping? 
-        # self.current_stimulus.texture.texture.setWrapU(Texture.WMClamp)
-        # self.current_stimulus.texture.texture.setWrapV(Texture.WMClamp)
+    #     # # NOTE: trying to ensure that the texture does not repeat itself and cause clipping? 
+    #     # self.current_stimulus.texture.texture.setWrapU(Texture.WMClamp)
+    #     # self.current_stimulus.texture.texture.setWrapV(Texture.WMClamp)
 
-        self.card.setTexture(self.texture_stage, self.current_stimulus.texture.texture)
+    #     self.card.setTexture(self.texture_stage, self.current_stimulus.texture.texture)
 
-        # set tex transforms
-        self.card.setTexRotate(
-            self.texture_stage,
-            self.current_stimulus.angle + self.default_params["rotation_offset"],
-            )
-        self.center_x = 0.05
-        self.center_y = 0.1
-        self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0) # x, y
-        self.taskMgr.add(self.move_monocular, "move_monocular")
+    #     # set tex transforms
+    #     self.card.setTexRotate(
+    #         self.texture_stage,
+    #         self.current_stimulus.angle + self.default_params["rotation_offset"],
+    #         )
+    #     self.center_x = 0.05
+    #     self.center_y = 0.1
+    #     self.card.setTexPos(self.texture_stage, self.center_x, self.center_y, 0) # x, y
+    #     self.taskMgr.add(self.move_monocular, "move_monocular")
 
 
 ### TEX MOVING AND BINOCULAR MOVING FOR EXAMPLES ON HOW TO MOVE ###

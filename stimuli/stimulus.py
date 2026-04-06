@@ -72,10 +72,10 @@ class StimulusSequencing(ShowBase):
                 print(
                     f"{self.current_stimulus.__class__} -- Stimulus type not understood"
                 )
-    def _compute_center_offset(self, angle_deg):
+    def _compute_center_offset(self, angle_deg, ax, ay):
         theta = np.radians(angle_deg)
-        tx = 0.5 * (1.0 - np.cos(theta) + np.sin(theta))
-        ty = 0.5 * (1.0 - np.cos(theta) - np.sin(theta))
+        tx = ax * (1.0 - np.cos(theta)) + ay * np.sin(theta)
+        ty = ay * (1.0 - np.cos(theta)) - ax * np.sin(theta)
         return tx, ty
 
     def set_monocular(self):
@@ -87,7 +87,7 @@ class StimulusSequencing(ShowBase):
 
         # create card
         self.card = self.aspect2d.attachNewNode(cardmaker.generate())
-        self.card.setScale(self.scale)
+        self.card.setScale(2) #self.scale)
         self.card.setColor((1, 1, 1, 1))
 
         self.card.setTexture(self.texture_stage, self.current_stimulus.texture.texture)
@@ -96,7 +96,15 @@ class StimulusSequencing(ShowBase):
         self.current_stimulus.texture.texture.setWrapV(Texture.WMClamp)
 
         self._mono_angle = (-self.current_stimulus.angle + self.default_params['rotation_offset'])
-        self._center_tx, self._center_ty = self._compute_center_offset(self._mono_angle)
+        tex = self.current_stimulus.texture
+        tex_w, tex_h = tex.texture_size
+        ax_px = tex.center_x
+        ay_px = tex.center_y
+        ax = ax_px/tex_w
+        ay = ay_px/tex_h
+
+        self._center_tx, self._center_ty = self._compute_center_offset(self._mono_angle, ax, ay)
+
         self.card.setTexPos(self.texture_stage, self._center_tx + self.center_x, self._center_ty + self.center_y, 0)
         self.card.setTexRotate(self.texture_stage, self._mono_angle)
 

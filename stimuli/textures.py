@@ -232,6 +232,7 @@ class EllipseGrayTex(TextureBase):
         center_y=0,
         width=50, #semi major axis
         length=100,#semi minor axis
+        pattern = None,
         bg_intensity=0,
         fg_intensity=255,
         texture_name="gray_ellipse",
@@ -243,6 +244,7 @@ class EllipseGrayTex(TextureBase):
         self.center_y = center_y
         self.width = width
         self.length = length
+        self.pattern = pattern
         self.bg_intensity = bg_intensity
         self.fg_intensity = fg_intensity
         super().__init__(texture_name=texture_name, *args, **kwargs)
@@ -257,106 +259,110 @@ class EllipseGrayTex(TextureBase):
 
         ellipse_texture = np.full((height, width_tex), self.bg_intensity, dtype=np.uint8)
 
-        # circular pattern
-        # def draw_ellipse(cx, cy):
-        #     ellipse_mask = (
-        #         ((X - cx) ** 2) / (self.width / 2) ** 2 +
-        #         ((Y - cy) ** 2) / (self.length / 2) ** 2
-        #     ) <= 1
-        #     ellipse_texture[ellipse_mask] = self.fg_intensity
+        if self.pattern == 'circular':
 
-        # def fits_in_texture(cx, cy):
-        #     return (
-        #         (self.width / 2) <= cx < (width_tex - self.width / 2)
-        #         and (self.length / 2) <= cy < (height - self.length / 2)
-        #     )
+            # circular pattern
+            def draw_ellipse(cx, cy):
+                ellipse_mask = (
+                    ((X - cx) ** 2) / (self.width / 2) ** 2 +
+                    ((Y - cy) ** 2) / (self.length / 2) ** 2
+                ) <= 1
+                ellipse_texture[ellipse_mask] = self.fg_intensity
 
-        # if self.frequency <= 1:
-        #     if fits_in_texture(self.center_x, self.center_y):
-        #         draw_ellipse(self.center_x, self.center_y)
-        #     return ellipse_texture
+            def fits_in_texture(cx, cy):
+                return (
+                    (self.width / 2) <= cx < (width_tex - self.width / 2)
+                    and (self.length / 2) <= cy < (height - self.length / 2)
+                )
 
-        # # spacing between rings
-        # ring_spacing = 1.3 * max(self.width, self.length)
+            if self.frequency <= 1:
+                if fits_in_texture(self.center_x, self.center_y):
+                    draw_ellipse(self.center_x, self.center_y)
+                return ellipse_texture
 
-        # # target arc-length spacing between ellipse centers on a ring
-        # target_spacing = 1.3 * max(self.width, self.length)
+            # spacing between rings
+            ring_spacing = 1.3 * max(self.width, self.length)
 
-        # centers = []
+            # target arc-length spacing between ellipse centers on a ring
+            target_spacing = 1.3 * max(self.width, self.length)
 
-        # # always include center first
-        # if fits_in_texture(self.center_x, self.center_y):
-        #     centers.append((self.center_x, self.center_y))
+            centers = []
 
-        # ring_idx = 1
-        # while len(centers) < self.frequency:
-        #     r = ring_idx * ring_spacing
+            # always include center first
+            if fits_in_texture(self.center_x, self.center_y):
+                centers.append((self.center_x, self.center_y))
 
-        #     # choose number of ellipses on this ring based on circumference
-        #     n_on_ring = max(6, int(round((2 * np.pi * r) / target_spacing)))
+            ring_idx = 1
+            while len(centers) < self.frequency:
+                r = ring_idx * ring_spacing
 
-        #     for k in range(n_on_ring):
-        #         theta = 2 * np.pi * k / n_on_ring
-        #         cx = self.center_x + r * np.cos(theta)
-        #         cy = self.center_y + r * np.sin(theta)
+                # choose number of ellipses on this ring based on circumference
+                n_on_ring = max(6, int(round((2 * np.pi * r) / target_spacing)))
 
-        #         if fits_in_texture(cx, cy):
-        #             centers.append((cx, cy))
-        #             if len(centers) >= self.frequency:
-        #                 break
+                for k in range(n_on_ring):
+                    theta = 2 * np.pi * k / n_on_ring
+                    cx = self.center_x + r * np.cos(theta)
+                    cy = self.center_y + r * np.sin(theta)
 
-        #     ring_idx += 1
+                    if fits_in_texture(cx, cy):
+                        centers.append((cx, cy))
+                        if len(centers) >= self.frequency:
+                            break
 
-        #     # fail-safe in case center is near an edge and many rings are invalid
-        #     if ring_idx > 100:
-        #         break
+                ring_idx += 1
 
-        # for cx, cy in centers:
-        #     draw_ellipse(cx, cy)
-
-        # for a rectangular pattern 
-        # spacing scales with ellipse size so relative gaps stay similar
-
-        def draw_ellipse(center_x, center_y):
-            ellipse_mask = (
-                ((X - center_x) ** 2) / (self.width / 2) ** 2 +
-                ((Y - center_y) ** 2) / (self.length / 2) ** 2
-            ) <= 1
-            ellipse_texture[ellipse_mask] = self.fg_intensity
-        
-        n_cols = int(np.ceil(np.sqrt(self.frequency)))
-        n_rows = int(np.ceil(self.frequency / n_cols))
-
-        # spacing based on ellipse size
-        x_spacing = self.width * 1.3
-        y_spacing = self.length * 1.3
-
-        # center grid around your desired center
-        start_x = self.center_x - (n_cols - 1) * x_spacing / 2
-        start_y = self.center_y - (n_rows - 1) * y_spacing / 2
-
-        count = 0
-
-        for row in range(n_rows):
-            for col in range(n_cols):
-                if count >= self.frequency:
+                # fail-safe in case center is near an edge and many rings are invalid
+                if ring_idx > 100:
                     break
 
-                cx = start_x + col * x_spacing
-                cy = start_y + row * y_spacing
+            for cx, cy in centers:
+                draw_ellipse(cx, cy)
+        
+        if self.pattern == 'rectangular':
 
-                if (
-                    (self.width / 2) <= cx < self.texture_size[0] - (self.width / 2)
-                    and (self.length / 2) <= cy < self.texture_size[1] - (self.length / 2)
-                ):
-                    ellipse_mask = (
-                        ((X - cx) ** 2) / (self.width / 2) ** 2 +
-                        ((Y - cy) ** 2) / (self.length / 2) ** 2
-                    ) <= 1
+            # for a rectangular pattern 
+            # spacing scales with ellipse size so relative gaps stay similar
 
-                    ellipse_texture[ellipse_mask] = self.fg_intensity
+            def draw_ellipse(center_x, center_y):
+                ellipse_mask = (
+                    ((X - center_x) ** 2) / (self.width / 2) ** 2 +
+                    ((Y - center_y) ** 2) / (self.length / 2) ** 2
+                ) <= 1
+                ellipse_texture[ellipse_mask] = self.fg_intensity
+            
+            n_cols = int(np.ceil(np.sqrt(self.frequency)))
+            n_rows = int(np.ceil(self.frequency / n_cols))
 
-                    count += 1
+            # spacing based on ellipse size
+            x_spacing = self.width * 1.3
+            y_spacing = self.length * 1.3
+
+            # center grid around your desired center
+            start_x = self.center_x - (n_cols - 1) * x_spacing / 2
+            start_y = self.center_y - (n_rows - 1) * y_spacing / 2
+
+            count = 0
+
+            for row in range(n_rows):
+                for col in range(n_cols):
+                    if count >= self.frequency:
+                        break
+
+                    cx = start_x + col * x_spacing
+                    cy = start_y + row * y_spacing
+
+                    if (
+                        (self.width / 2) <= cx < self.texture_size[0] - (self.width / 2)
+                        and (self.length / 2) <= cy < self.texture_size[1] - (self.length / 2)
+                    ):
+                        ellipse_mask = (
+                            ((X - cx) ** 2) / (self.width / 2) ** 2 +
+                            ((Y - cy) ** 2) / (self.length / 2) ** 2
+                        ) <= 1
+
+                        ellipse_texture[ellipse_mask] = self.fg_intensity
+
+                        count += 1
 
         return ellipse_texture
 

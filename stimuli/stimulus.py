@@ -92,16 +92,22 @@ class StimulusSequencing(ShowBase):
 
         self.card.setTexture(self.texture_stage, self.current_stimulus.texture.texture)
 
-        self.current_stimulus.texture.texture.setWrapU(Texture.WMClamp)
-        self.current_stimulus.texture.texture.setWrapV(Texture.WMClamp)
+        self.current_stimulus.texture.texture.setWrapU(Texture.WMRepeat)
+        self.current_stimulus.texture.texture.setWrapV(Texture.WMRepeat)
 
         self._mono_angle = (-self.current_stimulus.angle + self.default_params['rotation_offset'])
+
+
         tex = self.current_stimulus.texture
         tex_w, tex_h = tex.texture_size
-        ax_px = tex.center_x
-        ay_px = tex.center_y
-        ax = ax_px/tex_w
-        ay = ay_px/tex_h
+
+        if hasattr(tex, 'center_x'):
+            ax_px = tex.center_x
+            ay_px = tex.center_y
+            ax = ax_px/tex_w
+            ay = ay_px/tex_h
+        else:
+            ax = ay = 1
 
         self._center_tx, self._center_ty = self._compute_center_offset(self._mono_angle, ax, ay)
 

@@ -33,6 +33,11 @@ def pandastim_wrapper(alignment_comms):
     )
 
     pstim = stimulus.ExternalStimulus(buddy=stimulus_buddy, params_path=paramspath)
+    
+    # Setting background of display window to grey (to match the stimulus background)
+    g = 200 / 255.0
+    pstim.setBackgroundColor(g, g, g, 1)
+    
     pstim.run()
 
 

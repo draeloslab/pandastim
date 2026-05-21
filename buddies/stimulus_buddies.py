@@ -2,6 +2,7 @@ import json
 import sys
 import threading as tr
 import time
+import queue
 from datetime import datetime as dt
 from pathlib import Path
 
@@ -52,10 +53,17 @@ class StimulusBuddy(DirectObject.DirectObject):
                 port=str(self.default_params["publish_port"])
             )
 
-        if savePath:
-            self.filestream = utils.saving(savePath)
-        else:
-            self.filestream = None
+        self._running = True
+        self.savePath = savePath
+        self.log_queue = queue.Queue()
+        self.filestream = None
+        if self.savePath:
+            # self.filestream = utils.saving(savePath)
+            self.log_thread = tr.Thread(target=self._logger_worker, daemon=True)
+            self.log_thread.start()
+        # else:
+        #     self.filestream = None
+        
 
         match self.reportingMethod:
             case "onStim":
@@ -70,7 +78,7 @@ class StimulusBuddy(DirectObject.DirectObject):
         self._motion = False
         self._stimChange = False
         self._stimulus = None
-        self._running = True
+        # self._running = True
         self._pauseStatus = False
         self.lastReturnedStim = None
 
@@ -198,26 +206,39 @@ class StimulusBuddy(DirectObject.DirectObject):
             case "print":
                 print(f"pandastim {str(dt.now())} {msg}")
             case "zmq":
-                self.publisher.socket.send_pyobj(f"pandastim {str(dt.now())} {msg}")
+                self.publisher.socket.send_pyobj(f"pandastim |{str(dt.now())} |{msg}")
                 print(f"pandastim {str(dt.now())} {msg}")
             case _:
                 pass
 
         self.save(str(dt.now()) + "_&_" + msg)
+    def save(self, msg, new_session=False):
+        # 1. Ensure we have a path to save to
+        if not self.savePath:
+            return
 
-    def save(self, msg):
-        if self.filestream:
-            try:
-                stiminfo = self._stimulus.return_dict()
-            except:
-                stiminfo = None
-            timestamp = str(dt.now())
+        # 2. Capture timing for your benchmark
+        ts_f = time.time()
+        ts_s = str(dt.now())
 
-            self.filestream.write("\n")
-            self.filestream.write(f"{timestamp}_&_{msg.split('_&_')[1]}")
-            # self.filestream.write("\n")
-            # self.filestream.write(f"{timestamp}_&_{stiminfo}")
-            self.filestream.flush()
+        # 3. Filter for specific messages (and handle the new_session trigger)
+        # We use isinstance to make sure 'msg' is a string before searching it
+        is_relevant = isinstance(msg, str) and ("motionOn" in msg or "stimChange: {" in msg)
+        
+        # We save if the message is relevant OR if it's the start of a new file
+        if is_relevant or new_session:
+            self.log_queue.put((ts_f, ts_s, msg, new_session))
+    # def save(self, msg):
+    #     if self.filestream:
+    #         try:
+    #             stiminfo = self._stimulus.return_dict()
+    #         except:
+    #             stiminfo = None
+    #         timestamp = str(dt.now())
+    #         if "motionOn" or 'stimChange: {' in msg:
+    #             self.log_queue.put((timestamp,msg))
+    #         # self.filestream.write("\n")
+
 
     def view_queue(self):
         return self.queue
@@ -240,6 +261,33 @@ class StimulusBuddy(DirectObject.DirectObject):
 
     def proceed_alignment(self):
         self.output(f"pause")
+    
+    def _logger_worker(self):
+        while self._running:
+            try:
+                # Get the data from the queue
+                ts_f, ts_s, msg, new_session = self.log_queue.get(timeout=1.0)
+
+                # TRIGGER: Create new file if it's a new session OR if no file is open yet
+                if new_session or self.filestream is None:
+                    if self.filestream:
+                        self.filestream.close()
+                    
+                    # Create a filename based on the current minute
+                    # file_ts = dt.now().strftime("%Y-%m-%d_%H-%M-%S")
+                    # new_path = f"{self.savePath}/pstim.txt"
+                    
+                    # Open the new file
+                    self.filestream = open(self.savePath, "a")
+                    print(f"--- New Experiment Started: {self.savePath} ---")
+
+                # Write: NumericTS | HumanTS | Event
+                self.filestream.write(f"{ts_f} | {ts_s} | {msg}\n")
+                self.filestream.flush()
+                
+                self.log_queue.task_done()
+            except queue.Empty:
+                continue
 
 
 class AligningStimBuddy(StimulusBuddy):
@@ -326,6 +374,9 @@ class AligningStimBuddy(StimulusBuddy):
             match topic:
                 case "stim":
                     try:
+                        # new_session = len(self.queue) == 0
+                        # self.save(new_session)
+                        is_new = len(self.queue) == 0
                         if not isinstance(data["texture"], dict):
                             input_texture_0 = utils.createTexture(data["texture"][0])
                             input_texture_1 = utils.createTexture(data["texture"][1])
@@ -349,6 +400,7 @@ class AligningStimBuddy(StimulusBuddy):
                             )
 
                         self.queue.append(input_stimulus)
+                        self.save(f"New stimulus added: {input_stimulus.stim_name}", new_session=is_new)
                         if self.receipts:
                             self.output(
                                 f"pstimReceipts: queueAddition: {input_stimulus.return_dict()}"

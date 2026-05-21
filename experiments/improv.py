@@ -30,6 +30,7 @@ def pandastim_wrapper(alignment_comms):
         alignmentComms=alignment_comms,
         default_params_path=paramspath,
         outputMethod="zmq",
+        savePath = "../improv/experiments/savier/pstim_msg.txt"
     )
 
     pstim = stimulus.ExternalStimulus(buddy=stimulus_buddy, params_path=paramspath)

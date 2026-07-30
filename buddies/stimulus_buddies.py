@@ -221,11 +221,13 @@ class StimulusBuddy(DirectObject.DirectObject):
         ts_f = time.time()
         ts_s = str(dt.now())
 
-        # 3. Filter for specific messages (and handle the new_session trigger)
-        # We use isinstance to make sure 'msg' is a string before searching it
-        is_relevant = isinstance(msg, str) and ("motionOn" in msg or "stimChange: {" in msg)
+        # 3. Filter for specific messages
+        is_relevant = isinstance(msg, str) and (
+            "motionOn" in msg or 
+            "stimChange: {" in msg #or 
+            # "New stimulus added" in msg  # <-- Add this line
+        )
         
-        # We save if the message is relevant OR if it's the start of a new file
         if is_relevant or new_session:
             self.log_queue.put((ts_f, ts_s, msg, new_session))
     # def save(self, msg):
@@ -268,23 +270,20 @@ class StimulusBuddy(DirectObject.DirectObject):
                 # Get the data from the queue
                 ts_f, ts_s, msg, new_session = self.log_queue.get(timeout=1.0)
 
-                # TRIGGER: Create new file if it's a new session OR if no file is open yet
-                if new_session or self.filestream is None:
-                    if self.filestream:
-                        self.filestream.close()
-                    
-                    # Create a filename based on the current minute
-                    # file_ts = dt.now().strftime("%Y-%m-%d_%H-%M-%S")
-                    # new_path = f"{self.savePath}/pstim.txt"
-                    
-                    # Open the new file
-                    self.filestream = open(self.savePath, "a")
+                # Check if the file is brand new/empty so we can print to the terminal
+                is_brand_new_file = False
+                save_file = Path(self.savePath)
+                if not save_file.exists() or save_file.stat().st_size == 0:
+                    is_brand_new_file = True
+
+                # Open the file, write the line, and IMMEDIATELY close it using 'with'
+                with open(self.savePath, "a") as f:
+                    f.write(f"{ts_f} | {ts_s} | {msg}\n")
+                
+                # Print to terminal if we just started writing to a fresh file
+                if is_brand_new_file:
                     print(f"--- New Experiment Started: {self.savePath} ---")
 
-                # Write: NumericTS | HumanTS | Event
-                self.filestream.write(f"{ts_f} | {ts_s} | {msg}\n")
-                self.filestream.flush()
-                
                 self.log_queue.task_done()
             except queue.Empty:
                 continue
@@ -376,7 +375,7 @@ class AligningStimBuddy(StimulusBuddy):
                     try:
                         # new_session = len(self.queue) == 0
                         # self.save(new_session)
-                        is_new = len(self.queue) == 0
+                        # is_new = len(self.queue) == 0
                         if not isinstance(data["texture"], dict):
                             input_texture_0 = utils.createTexture(data["texture"][0])
                             input_texture_1 = utils.createTexture(data["texture"][1])
@@ -400,7 +399,7 @@ class AligningStimBuddy(StimulusBuddy):
                             )
 
                         self.queue.append(input_stimulus)
-                        self.save(f"New stimulus added: {input_stimulus.stim_name}", new_session=is_new)
+                        # self.save(f"New stimulus added: {input_stimulus.stim_name}")
                         if self.receipts:
                             self.output(
                                 f"pstimReceipts: queueAddition: {input_stimulus.return_dict()}"
